@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>팬데믹 대응을 위한 국제협력 달성하기 (Pixel Art Edition)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Press Start 2P for Retro vibe & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #7dd3fc 0%, #e0f2fe 100%);
+        }
+        .retro-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(224, 242, 254, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between overflow-x-hidden select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full bg-white/90 backdrop-blur-md border-b-4 border-slate-900 px-4 py-3 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Game Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-rose-500 rounded-lg border-2 border-slate-900 flex items-center justify-center shadow-[2px_2px_0px_#000]">
+                    <i class="fa-solid fa-handholding-handshake text-white text-xl animate-bounce"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">팬데믹 대응을 위한 국제협력 달성하기</h1>
+                    <p class="text-xs text-sky-600 font-bold mt-1">글로벌 문제 해결 미니게임</p>
+                </div>
+            </div>
+
+            <!-- Controller Info & Reset Button -->
+            <div class="flex items-center gap-2">
+                <button onclick="togglePause()" class="bg-slate-800 text-white hover:bg-slate-700 font-bold py-2 px-3 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_#000] text-sm transition-all duration-75 flex items-center gap-2 active:translate-y-0.5 active:shadow-none">
+                    <i id="header-pause-icon" class="fa-solid fa-pause"></i> <span id="header-pause-text">일시정지</span>
+                </button>
+                <button onclick="resetGame()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-2 px-3 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_#000] text-sm transition-all duration-75 flex items-center gap-2 active:translate-y-0.5 active:shadow-none">
+                    <i class="fa-solid fa-rotate-right"></i> 다시 하기
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Main Play Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- 왼쪽: 캠페인 교육 및 설명 패널 -->
+        <section class="lg:col-span-5 flex flex-col gap-4 bg-white border-4 border-slate-900 p-5 rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] custom-scrollbar max-h-[85vh] overflow-y-auto">
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-white px-2.5 py-1 bg-sky-600 border-2 border-slate-900 rounded retro-font">CAMPAIGN GOAL</span>
+                <h2 class="text-xl font-extrabold mt-3 mb-2 text-slate-900">팬데믹 대응을 위한 국제협력 달성하기</h2>
+                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                    이 게임은 팬데믹 상황에서 개인의 예방 노력을 넘어, **국가 간의 긴밀한 공조와 백신의 형평성 있는 분배**가 왜 필수적인지 체험하도록 설계되었습니다. 게임 속 낭떠러지를 점프할 때 숨어있는 글로벌 불평등 함정들을 해결하고 목적지인 <span class="text-emerald-600 font-bold font-black">국제협력의 타워</span>에 도달하세요!
+                </p>
+            </div>
+
+            <!-- 미션 및 방해요소 안내 -->
+            <div class="border-t-2 border-dashed border-slate-300 pt-4 space-y-3">
+                <h3 class="text-xs font-bold text-slate-700 flex items-center gap-1.5 retro-font">
+                    👾 THREATS (방해요소)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <div class="bg-emerald-50 p-3 rounded border-2 border-slate-900 flex items-center space-x-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <div class="w-8 h-8 bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs"></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-emerald-800">확진자 증가</h4>
+                            <p class="text-[11px] text-slate-600">초록 슬라임: 닿으면 목숨을 잃습니다.</p>
+                        </div>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded border-2 border-slate-900 flex items-center space-x-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <div class="w-8 h-8 bg-red-500 border-2 border-slate-900 flex items-center justify-center text-white flex-shrink-0 font-bold text-xs"></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-red-800">바이러스 확산</h4>
+                            <p class="text-[11px] text-slate-600">빨강 슬라임: 접촉 시 피해를 입습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 극복해야 할 글로벌 불평등 함정 3선 -->
+            <div class="border-t-2 border-dashed border-slate-300 pt-4 space-y-2.5">
+                <h3 class="text-xs font-bold text-slate-700 flex items-center gap-1.5 retro-font">
+                    ⚠️ TRAPS (불평등 장벽)
+                </h3>
+                
+                <div class="bg-slate-50 p-3 rounded border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs space-y-1">
+                    <span class="text-[9px] font-bold text-white px-1.5 py-0.5 bg-amber-500 border border-slate-900 rounded retro-font">TRAP 1</span>
+                    <p class="text-slate-700 leading-relaxed font-bold">
+                        자국 우선주의 수출 제한
+                    </p>
+                    <p class="text-slate-500 text-[11px]">
+                        일부 국가들이 마스크, 백신 원자재 등의 수출을 제한하면서 가난한 나라들이 자원 부족에 직면하는 문제입니다.
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs space-y-1">
+                    <span class="text-[9px] font-bold text-white px-1.5 py-0.5 bg-amber-500 border border-slate-900 rounded retro-font">TRAP 2</span>
+                    <p class="text-slate-700 leading-relaxed font-bold">
+                        백신 선확보 및 대량 독점
+                    </p>
+                    <p class="text-slate-500 text-[11px]">
+                        선진국들이 백신 물량을 독점 선구매하여 개도국들이 방역 장비를 확보하는 데 심각한 지연을 겪는 일입니다.
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs space-y-1">
+                    <span class="text-[9px] font-bold text-white px-1.5 py-0.5 bg-amber-500 border border-slate-900 rounded retro-font">TRAP 3</span>
+                    <p class="text-slate-700 leading-relaxed font-bold">
+                        자원 불균형 & 정보 단절
+                    </p>
+                    <p class="text-slate-500 text-[11px]">
+                        의료 인프라 및 변이 바이러스 데이터의 독점과 공유 부재가 전 세계적인 팬데믹 극복을 늦추는 주요 원인입니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 조작법 -->
+            <div class="border-t-2 border-dashed border-slate-300 pt-3 text-xs text-slate-500 flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                    <span class="font-bold text-slate-700 block mb-1">🎮 CONTROLS</span>
+                    <span>이동: <kbd class="px-1 py-0.5 bg-slate-100 border-2 border-slate-900 rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-slate-700 font-bold">←</kbd> <kbd class="px-1 py-0.5 bg-slate-100 border-2 border-slate-900 rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-slate-700 font-bold">→</kbd> | 점프: <kbd class="px-1 py-0.5 bg-slate-100 border-2 border-slate-900 rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-slate-700 font-bold">Space</kbd> / <kbd class="px-1 py-0.5 bg-slate-100 border-2 border-slate-900 rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-slate-700 font-bold">↑</kbd> | 일시정지: <kbd class="px-1 py-0.5 bg-slate-100 border-2 border-slate-900 rounded shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-slate-700 font-bold">ESC</kbd></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 오른쪽: 실시간 캔버스 및 게임 구역 -->
+        <section class="lg:col-span-7 flex flex-col justify-between bg-white border-4 border-slate-900 p-4 rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+            
+            <!-- 상단 상태바 (Retro HUD) -->
+            <div class="flex items-center justify-between mb-3 border-b-4 border-slate-900 pb-3">
+                <!-- 생명 표시 -->
+                <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <span class="text-[8px] font-bold text-slate-900 retro-font">LIFE</span>
+                    <div id="heart-container" class="flex space-x-1"></div>
+                </div>
+                <!-- 점수 / 진행도 / 유틸리티 버튼 -->
+                <div class="flex items-center space-x-3">
+                    <div class="text-right">
+                        <span class="text-[8px] text-slate-900 block font-bold retro-font">COOP-PCT</span>
+                        <div class="w-24 bg-slate-100 border-2 border-slate-900 h-4 mt-1 overflow-hidden relative shadow-[inner_2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <div id="progress-indicator" class="bg-emerald-500 h-full w-[0%] transition-all duration-300"></div>
+                        </div>
+                    </div>
+                    <!-- 일시정지 & 볼륨 토글 버튼 그룹 -->
+                    <div class="flex items-center space-x-1.5">
+                        <button id="pause-toggle" class="bg-slate-100 border-2 border-slate-900 p-1.5 text-slate-900 hover:bg-slate-200 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" title="일시정지 (ESC)">
+                            <i class="fa-solid fa-pause"></i>
+                        </button>
+                        <button id="audio-toggle" class="bg-slate-100 border-2 border-slate-900 p-1.5 text-slate-900 hover:bg-slate-200 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 게임 캔버스 컨테이너 (8비트 화질 유지) -->
+            <div class="relative flex-1 bg-sky-200 border-4 border-slate-900 overflow-hidden shadow-[inset_4px_4px_0px_0px_rgba(0,0,0,0.2)] min-h-[400px]">
+                <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+                <!-- 스타트 오버레이 화면 -->
+                <div id="start-overlay" class="absolute inset-0 bg-sky-100/95 flex flex-col items-center justify-center text-center p-6 transition-all duration-300">
+                    <div class="w-16 h-16 bg-amber-500 border-4 border-slate-900 flex items-center justify-center text-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 animate-bounce">
+                        <i class="fa-solid fa-cat text-3xl"></i>
+                    </div>
+                    <h3 class="text-base font-black mb-3 text-slate-900 retro-font">MISSION START</h3>
+                    <p class="text-slate-700 text-xs max-w-sm leading-relaxed mb-6 font-bold">
+                        귀여운 도트 고양이 요원이 되어 **'글로벌 협력의 타워'**에 도달하세요!<br><br>
+                        <span class="text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 낭떠러지를 건너기 위해 점프하는 순간, 공중에 숨어있던 불평등 차단 장벽이 나타납니다!</span>
+                    </p>
+                    <button id="btn-start" class="pixel-btn px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs retro-font">
+                        START GAME
+                    </button>
+                </div>
+
+                <!-- 일시정지 오버레이 화면 -->
+                <div id="pause-overlay" class="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center text-center p-6 hidden z-30">
+                    <div class="w-16 h-16 bg-amber-500 border-4 border-slate-900 flex items-center justify-center text-slate-900 text-3xl mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <i class="fa-solid fa-pause"></i>
+                    </div>
+                    <h3 class="text-sm font-black mb-2 text-amber-500 retro-font">PAUSED</h3>
+                    <p class="text-slate-300 text-xs max-w-sm mb-6 font-bold">
+                        게임이 일시정지되었습니다.<br>협력 조약과 대응 전략을 재정비해보세요.
+                    </p>
+                    <button id="btn-resume" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs retro-font">
+                        RESUME GAME
+                    </button>
+                </div>
+
+                <!-- 캠페인 함정 팝업 모달 (글로벌 O/X 퀴즈로 연동) -->
+                <div id="campaign-modal" class="absolute inset-0 bg-slate-900/90 flex items-center justify-center p-6 hidden z-30 transition-all duration-300">
+                    <div class="max-w-md w-full bg-white border-4 border-slate-900 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative space-y-4">
+                        <div class="flex items-center space-x-3 text-amber-500 border-b-2 border-slate-200 pb-3">
+                            <div class="w-10 h-10 bg-amber-500 border-2 border-slate-900 flex items-center justify-center text-slate-900 text-xl font-bold">
+                                ⚠️
+                            </div>
+                            <div>
+                                <span class="text-[8px] font-bold text-amber-600 uppercase tracking-widest block retro-font">TRAP QUIZ!</span>
+                                <h4 id="trap-title" class="text-sm font-black text-slate-900 mt-0.5">함정명</h4>
+                            </div>
+                        </div>
+
+                        <!-- 함정 배경 설명 -->
+                        <div id="trap-desc" class="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-3 border-2 border-slate-900 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+                            설명 기획이 동적으로 삽입됩니다.
+                        </div>
+
+                        <!-- OX 퀴즈 문제 발문 박스 (추가 연출 없이 깔끔한 디자인 유지) -->
+                        <div class="bg-blue-50 p-3 border-2 border-blue-900 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <span class="text-[8px] font-bold text-blue-700 retro-font block mb-1">💡 GLOBAL HEALTH QUIZ</span>
+                            <p id="trap-question" class="text-xs text-slate-900 font-bold leading-relaxed">
+                                여기에 O/X 문제가 출제됩니다.
+                            </p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-[9px] font-bold text-sky-600 flex items-center gap-1 retro-font">
+                                <i class="fa-solid fa-file-contract"></i> COOPERATION TREATY
+                            </label>
+                            <!-- 피드백 텍스트 교체 공간 -->
+                            <p id="feedback-text" class="text-[11px] text-slate-600 font-bold">올바른 답변을 선택하여 공중 함정을 해제하고 구멍을 메우십시오.</p>
+                        </div>
+
+                        <!-- O/X 입력 버튼 구성 (기존 도트 픽셀 테두리와 그림자 감성 완벽 유지) -->
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <button id="btn-quiz-o" class="py-3 bg-emerald-500 hover:bg-emerald-400 active:translate-x-1 active:translate-y-1 active:shadow-none transition text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm retro-font">
+                                O (맞음)
+                            </button>
+                            <button id="btn-quiz-x" class="py-3 bg-rose-500 hover:bg-rose-400 active:translate-x-1 active:translate-y-1 active:shadow-none transition text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-sm retro-font">
+                                X (틀림)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 게임 오버 오버레이 -->
+                <div id="gameover-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-6 hidden z-30">
+                    <div class="w-16 h-16 bg-red-600 border-4 border-slate-900 flex items-center justify-center text-slate-900 text-3xl mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        💀
+                    </div>
+                    <h3 class="text-sm font-black mb-2 text-red-500 retro-font">GAME OVER</h3>
+                    <p class="text-slate-400 text-xs max-w-sm mb-6 leading-relaxed font-bold">
+                        글로벌 방역 연대가 실패하여 팬데믹 극복이 어렵게 되었습니다. 우리는 더 큰 연대가 필요합니다!
+                    </p>
+                    <button id="btn-restart" class="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xs retro-font">
+                        TRY AGAIN
+                    </button>
+                </div>
+
+                <!-- 성공(클리어) 오버레이 -->
+                <div id="victory-overlay" class="absolute inset-0 bg-emerald-100/98 flex flex-col items-center justify-center text-center p-6 hidden z-30">
+                    <div class="w-16 h-16 bg-emerald-400 border-4 border-slate-900 flex items-center justify-center text-slate-900 text-4xl mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        🏆
+                    </div>
+                    <h3 class="text-sm font-black mb-2 text-emerald-600 retro-font">VICTORY</h3>
+                    <p class="text-slate-700 text-xs max-w-sm mb-6 leading-relaxed font-bold">
+                        자국 우선주의 타파, 형평성 있는 물자 지원 및 정보 투명화를 통해 국제 사회 전체가 팬데믹 퇴치에 마침내 성공했습니다!
+                    </p>
+                    <button id="btn-victory-restart" class="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xs retro-font">
+                        PLAY AGAIN
+                    </button>
+                </div>
+            </div>
+
+            <!-- 모바일/터치용 가상 조이스틱 -->
+            <div class="grid grid-cols-2 gap-4 mt-3">
+                <div class="flex space-x-2">
+                    <button id="ctrl-left" class="flex-1 bg-slate-100 border-4 border-slate-900 active:bg-slate-200 select-none text-slate-900 py-3 flex items-center justify-center text-2xl transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] touch-none">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <button id="ctrl-right" class="flex-1 bg-slate-100 border-4 border-slate-900 active:bg-slate-200 select-none text-slate-900 py-3 flex items-center justify-center text-2xl transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] touch-none">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div class="flex">
+                    <button id="ctrl-jump" class="w-full bg-amber-500 border-4 border-slate-900 active:bg-amber-400 select-none text-slate-900 py-3 flex items-center justify-center text-lg transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] touch-none retro-font">
+                        JUMP
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="border-t-4 border-slate-900 bg-white py-3 mt-4 text-center text-[10px] text-slate-600 font-bold">
+        <div class="max-w-7xl mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
+            <span>© 2026 Global Health Security Campaign Network. All Rights Reserved.</span>
+            <span>함께 만드는 안전하고 건강한 지구 공동체</span>
+        </div>
+    </footer>
+
+    <!-- 게임 핵심 로직 자바스크립트 -->
+    <script>
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            toggle() {
+                this.enabled = !this.enabled;
+                return this.enabled;
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.enabled) return;
+                this.init();
+                try {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.type = type;
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.00001, this.ctx.currentTime + duration);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+            jump() { this.playTone(400, 'triangle', 0.12, 0.08); }
+            hit() { this.playTone(150, 'sawtooth', 0.35, 0.15); }
+            reveal() { 
+                this.playTone(600, 'sine', 0.08, 0.1); 
+                setTimeout(() => this.playTone(900, 'sine', 0.08, 0.1), 80);
+            }
+            resolve() {
+                this.playTone(523.25, 'sine', 0.1, 0.08); // Do
+                setTimeout(() => this.playTone(659.25, 'sine', 0.1, 0.08), 100); // Mi
+                setTimeout(() => this.playTone(783.99, 'sine', 0.25, 0.08), 200); // Sol
+            }
+            win() {
+                let melody = [261, 329, 392, 523, 659];
+                melody.forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sine', 0.25, 0.08), i * 130);
+                });
+            }
+        }
+        const audio = new SoundSystem();
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const width = canvas.parentElement.clientWidth;
+            const height = canvas.parentElement.clientHeight;
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Physics
+        const gravity = 0.45;
+        const friction = 0.85;
+
+        // Player state
+        const player = {
+            x: 50,
+            y: 200,
+            width: 32,
+            height: 32,
+            vx: 0,
+            vy: 0,
+            speed: 3.5,
+            jumpForce: 9.8,
+            grounded: false,
+            wasGrounded: false,
+            lives: 3,
+            invulnerableTime: 0,
+            direction: 1, // 1: Right, -1: Left
+            jumping: false
+        };
+
+        // Camera control & juicy screen shake
+        const camera = {
+            x: 0,
+            viewportWidth: 800,
+            worldWidth: 2600,
+            shake: 0
+        };
+
+        // Base Platforms
+        const basePlatforms = [
+            { x: 0, y: 350, width: 320, height: 60 },
+            { x: 440, y: 350, width: 380, height: 60 },
+            { x: 940, y: 350, width: 440, height: 60 },
+            { x: 1540, y: 350, width: 380, height: 60 },
+            { x: 2080, y: 350, width: 520, height: 60 },
+
+            // Floating air platforms
+            { x: 200, y: 260, width: 96, height: 20 },
+            { x: 500, y: 260, width: 112, height: 20 },
+            { x: 740, y: 190, width: 112, height: 20 },
+            { x: 1080, y: 260, width: 96, height: 20 },
+            { x: 1280, y: 190, width: 96, height: 20 },
+            { x: 1680, y: 260, width: 112, height: 20 },
+            { x: 1930, y: 220, width: 96, height: 20 },
+            { x: 2180, y: 260, width: 112, height: 20 }
+        ];
+
+        // Spikes inside gaps
+        const baseSpikes = [
+            { x: 320, y: 395, width: 120, height: 15 },
+            { x: 820, y: 395, width: 120, height: 15 },
+            { x: 1380, y: 395, width: 160, height: 15 },
+            { x: 1920, y: 395, width: 160, height: 15 }
+        ];
+
+        let platforms = [];
+        let spikes = [];
+        let particles = [];
+        
+        // Patrol Slimes - slower speed for a smoother, balanced experience
+        const enemies = [
+            { id: 1, type: 'slime1', x: 530, y: 318, width: 32, height: 32, patrolStart: 450, patrolEnd: 800, vx: 0.5, name: "확진자 증가" },
+            { id: 2, type: 'slime2', x: 1100, y: 318, width: 32, height: 32, patrolStart: 950, patrolEnd: 1360, vx: 0.5, name: "바이러스 확산" },
+            { id: 3, type: 'slime1', x: 1690, y: 228, width: 32, height: 32, patrolStart: 1680, patrolEnd: 1790, vx: 0.3, name: "확진자 증가" },
+            { id: 4, type: 'slime2', x: 2200, y: 318, width: 32, height: 32, patrolStart: 2090, patrolEnd: 2420, vx: 0.6, name: "바이러스 확산" }
+        ];
+
+        // Closed / Blocked vertical space barriers with dynamic O/X questions
+        const traps = [
+            {
+                id: 1,
+                x: 370,
+                y: 0, 
+                width: 24,
+                height: 350,
+                active: true,
+                revealed: false,
+                revealRange: 130,
+                title: "함정 1: 자국 우선주의 수출 제한",
+                desc: "일부 국가들이 자국 우선주의에 따라 마스크, 진단키트 등 방역 물자나 백신의 수출을 제한하면서, 물자가 부족한 다른 국가들이 어려움을 겪는 현상입니다.",
+                question: "방역 물자나 백신의 수출을 자국 우선주의로 전면 통제·제한하는 조치는 전 세계적인 팬데믹 극복을 늦추는 결과를 낳는다.",
+                correctAnswer: "O",
+                fillPlatform: { x: 320, y: 350, width: 120, height: 60 },
+                spikeX: 320
+            },
+            {
+                id: 2,
+                x: 870,
+                y: 0,
+                width: 24,
+                height: 350,
+                active: true,
+                revealed: false,
+                revealRange: 130,
+                title: "함정 2: 백신 선확보 및 대량 독점",
+                desc: "선진국들이 자국민을 위해 다량의 백신 공급량을 선구매 확보하면서, 재정 및 교섭력이 상대적으로 부족한 개발도상국들이 백신을 제때 공급받지 못하는 글로벌 백신 불평등 사태입니다.",
+                question: "부유한 국가들이 자금력만으로 자국민을 위해 백신 물량을 독점하는 행위는 지구 전체의 집단 면역 형성에 긍정적이다.",
+                correctAnswer: "X",
+                fillPlatform: { x: 820, y: 350, width: 120, height: 60 },
+                spikeX: 820
+            },
+            {
+                id: 3,
+                x: 1450,
+                y: 0,
+                width: 24,
+                height: 350,
+                active: true,
+                revealed: false,
+                revealRange: 130,
+                title: "함정 3: 자원 분배 불균형 & 정보 단절",
+                desc: "백신 및 치료 역량 격차와 전 세계 질병 위기 데이터의 유기적인 공유 부족으로 인해 팬데믹 바이러스의 지속적인 변이가 퍼지며 전 인류의 고통이 지속되는 상황입니다.",
+                question: "신속한 바이러스 종식을 위해 국가 간 장벽을 낮추고, 바이러스의 확산세와 위험도 정보를 투명하게 공유해야 한다.",
+                correctAnswer: "O",
+                fillPlatform: { x: 1380, y: 350, width: 160, height: 60 },
+                spikeX: 1380
+            }
+        ];
+
+        // Target tower
+        const goal = {
+            x: 2420,
+            y: 240,
+            width: 60,
+            height: 110,
+            reached: false
+        };
+
+        // Rich multi-layered background clouds
+        const clouds = [
+            // Far Layer clouds (move slowly, lighter opacity)
+            { x: 50, y: 30, width: 50, height: 18, speed: 0.05, depth: 0.1, alpha: 0.4 },
+            { x: 300, y: 50, width: 60, height: 20, speed: 0.04, depth: 0.1, alpha: 0.4 },
+            { x: 600, y: 25, width: 55, height: 18, speed: 0.06, depth: 0.1, alpha: 0.4 },
+            { x: 950, y: 45, width: 70, height: 22, speed: 0.03, depth: 0.1, alpha: 0.4 },
+            { x: 1300, y: 35, width: 50, height: 16, speed: 0.05, depth: 0.1, alpha: 0.4 },
+            { x: 1750, y: 55, width: 65, height: 20, speed: 0.04, depth: 0.1, alpha: 0.4 },
+            { x: 2150, y: 30, width: 55, height: 18, speed: 0.05, depth: 0.1, alpha: 0.4 },
+
+            // Near Layer clouds (larger, faster)
+            { x: 150, y: 70, width: 85, height: 28, speed: 0.12, depth: 0.3, alpha: 0.8 },
+            { x: 450, y: 110, width: 110, height: 35, speed: 0.09, depth: 0.3, alpha: 0.8 },
+            { x: 800, y: 65, width: 80, height: 25, speed: 0.15, depth: 0.3, alpha: 0.8 },
+            { x: 1150, y: 90, width: 120, height: 38, speed: 0.1, depth: 0.3, alpha: 0.8 },
+            { x: 1500, y: 120, width: 95, height: 30, speed: 0.14, depth: 0.3, alpha: 0.8 },
+            { x: 1900, y: 75, width: 105, height: 32, speed: 0.08, depth: 0.3, alpha: 0.8 },
+            { x: 2300, y: 100, width: 90, height: 28, speed: 0.11, depth: 0.3, alpha: 0.8 }
+        ];
+
+        // 8-bit visual matrices
+        const catMatrix = [
+            [0,0,0,1,0,0,0,0,1,0,0,0],
+            [0,0,1,1,1,0,0,1,1,1,0,0],
+            [0,1,1,3,1,1,1,1,3,1,1,0],
+            [0,1,1,1,1,1,1,1,1,1,1,0],
+            [0,1,1,4,5,1,1,4,5,1,1,0],
+            [0,1,1,1,1,3,1,1,1,1,1,1],
+            [0,0,1,1,1,1,1,1,1,1,1,1],
+            [0,0,0,1,1,1,1,1,1,1,1,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0],
+            [0,1,1,0,1,1,0,0,1,1,0,0],
+            [0,1,1,0,1,1,0,0,1,1,0,0]
+        ];
+
+        const slimeMatrix = [
+            [0,0,0,0,1,1,1,1,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,1,1,1,1,0],
+            [1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,3,3,1,1,1,1,3,3,1,1],
+            [1,1,3,4,1,1,1,1,3,4,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,1,1,1,1,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0]
+        ];
+
+        const keys = {
+            left: false,
+            right: false,
+            up: false,
+            space: false
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = true;
+            if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = true;
+            if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = true;
+            if (e.code === 'Space') {
+                keys.space = true;
+                e.preventDefault();
+            }
+            if (e.code === 'Escape') {
+                togglePause();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.left = false;
+            if (['ArrowRight', 'KeyD'].includes(e.code)) keys.right = false;
+            if (['ArrowUp', 'KeyW'].includes(e.code)) keys.up = false;
+            if (e.code === 'Space') keys.space = false;
+        });
+
+        const setupTouchControls = () => {
+            const leftBtn = document.getElementById('ctrl-left');
+            const rightBtn = document.getElementById('ctrl-right');
+            const jumpBtn = document.getElementById('ctrl-jump');
+
+            const startTouch = (btn, keyProp) => {
+                btn.addEventListener('touchstart', (e) => {
+                    keys[keyProp] = true;
+                    btn.classList.add('bg-slate-300');
+                    e.preventDefault();
+                }, {passive: false});
+                btn.addEventListener('mousedown', () => {
+                    keys[keyProp] = true;
+                });
+            };
+
+            const endTouch = (btn, keyProp) => {
+                btn.addEventListener('touchend', (e) => {
+                    keys[keyProp] = false;
+                    btn.classList.remove('bg-slate-300');
+                    e.preventDefault();
+                }, {passive: false});
+                btn.addEventListener('mouseup', () => {
+                    keys[keyProp] = false;
+                });
+                btn.addEventListener('mouseleave', () => {
+                    keys[keyProp] = false;
+                });
+            };
+
+            startTouch(leftBtn, 'left');
+            endTouch(leftBtn, 'left');
+
+            startTouch(rightBtn, 'right');
+            endTouch(rightBtn, 'right');
+
+            jumpBtn.addEventListener('touchstart', (e) => {
+                keys.up = true;
+                e.preventDefault();
+            }, {passive: false});
+            jumpBtn.addEventListener('touchend', (e) => {
+                keys.up = false;
+                e.preventDefault();
+            }, {passive: false});
+            jumpBtn.addEventListener('mousedown', () => { keys.up = true; });
+            jumpBtn.addEventListener('mouseup', () => { keys.up = false; });
+        };
+        setupTouchControls();
+
+        document.getElementById('audio-toggle').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const active = audio.toggle();
+            if (active) {
+                icon.className = 'fa-solid fa-volume-high';
+                this.classList.remove('text-red-500');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                this.classList.add('text-red-500');
+            }
+        });
+
+        let gameState = 'start'; 
+        let activeTrap = null;
+
+        const pauseToggleBtn = document.getElementById('pause-toggle');
+        const pauseOverlay = document.getElementById('pause-overlay');
+        const resumeBtn = document.getElementById('btn-resume');
+
+        function togglePause() {
+            if (gameState === 'play') {
+                gameState = 'user-pause';
+                pauseOverlay.classList.remove('hidden');
+                pauseToggleBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                audio.playTone(200, 'sine', 0.1, 0.05);
+            } else if (gameState === 'user-pause') {
+                gameState = 'play';
+                pauseOverlay.classList.add('hidden');
+                pauseToggleBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                audio.playTone(300, 'sine', 0.1, 0.05);
+            }
+        }
+
+        pauseToggleBtn.addEventListener('click', togglePause);
+        resumeBtn.addEventListener('click', togglePause);
+
+        function updateLivesUI() {
+            const container = document.getElementById('heart-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < player.lives) {
+                    container.innerHTML += `<span class="text-red-500 text-xs font-black retro-font">♥</span>`;
+                } else {
+                    container.innerHTML += `<span class="text-slate-400 text-xs font-black retro-font">♡</span>`;
+                }
+            }
+        }
+
+        function updateCooperationProgress() {
+            const totalTraps = traps.length;
+            const solvedTraps = traps.filter(t => !t.active).length;
+            const pct = (solvedTraps / totalTraps) * 100;
+            document.getElementById('progress-indicator').style.width = pct + '%';
+        }
+
+        function resetGame() {
+            player.x = 50;
+            player.y = 200;
+            player.vx = 0;
+            player.vy = 0;
+            player.lives = 3;
+            player.invulnerableTime = 0;
+            player.grounded = false;
+            player.wasGrounded = false;
+            particles = [];            
+            platforms = JSON.parse(JSON.stringify(basePlatforms));
+            spikes = JSON.parse(JSON.stringify(baseSpikes));
+
+            traps.forEach(t => {
+                t.active = true;
+                t.revealed = false;
+            });
+
+            gameState = 'play';
+            updateLivesUI();
+            updateCooperationProgress();
+
+            document.getElementById('start-overlay').classList.add('hidden');
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('victory-overlay').classList.add('hidden');
+            document.getElementById('campaign-modal').classList.add('hidden');
+            pauseOverlay.classList.add('hidden');
+            pauseToggleBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            audio.init();
+        }
+
+        function triggerTrap(trap) {
+            activeTrap = trap;
+            gameState = 'pause';
+            document.getElementById('trap-title').innerText = trap.title;
+            document.getElementById('trap-desc').innerText = trap.desc;
+            document.getElementById('trap-question').innerText = trap.question;
+            
+            // Reset feedback instruction labels
+            const feedbackText = document.getElementById('feedback-text');
+            feedbackText.innerText = "올바른 답변을 선택하여 공중 함정을 해제하고 구멍을 메우십시오.";
+            feedbackText.className = "text-[11px] text-slate-600 font-bold";
+
+            document.getElementById('campaign-modal').classList.remove('hidden');
+            audio.playTone(300, 'sawtooth', 0.4, 0.1);
+        }
+
+        // OX Quiz evaluation and integration
+        function handleQuizChoice(answer) {
+            if (!activeTrap) return;
+
+            if (answer === activeTrap.correctAnswer) {
+                // Correct! Resolve Trap
+                activeTrap.active = false;
+                gameState = 'play';
+                document.getElementById('campaign-modal').classList.add('hidden');
+                audio.resolve();
+                updateCooperationProgress();
+
+                if (activeTrap.fillPlatform) {
+                    platforms.push({ ...activeTrap.fillPlatform });
+                    const idx = spikes.findIndex(s => s.x === activeTrap.spikeX);
+                    if (idx !== -1) {
+                        spikes.splice(idx, 1);
+                    }
+                    // Spawn dust particles to celebrate
+                    spawnDustParticles(activeTrap.fillPlatform.x + activeTrap.fillPlatform.width/2, activeTrap.fillPlatform.y);
+                }
+                activeTrap = null;
+            } else {
+                // Incorrect! Deduct HP using existing loss triggers
+                takeDamage();
+                
+                if (player.lives <= 0) {
+                    // Game Over condition met, close popup automatically
+                    document.getElementById('campaign-modal').classList.add('hidden');
+                } else {
+                    // Update feedback notice in red font inside modal
+                    const feedbackText = document.getElementById('feedback-text');
+                    feedbackText.innerText = "❌ 오답입니다! 목숨을 1개 잃었습니다. 신중하게 문제를 다시 풀고 위기를 극복하십시오.";
+                    feedbackText.className = "text-[11px] text-rose-600 font-bold animate-pulse";
+                }
+            }
+        }
+
+        document.getElementById('btn-quiz-o').addEventListener('click', () => handleQuizChoice('O'));
+        document.getElementById('btn-quiz-x').addEventListener('click', () => handleQuizChoice('X'));
+
+        document.getElementById('btn-start').addEventListener('click', resetGame);
+        document.getElementById('btn-restart').addEventListener('click', resetGame);
+        document.getElementById('btn-victory-restart').addEventListener('click', resetGame);
+
+        function checkCollision(r1, r2) {
+            return r1.x < r2.x + r2.width &&
+                   r1.x + r1.width > r2.x &&
+                   r1.y < r2.y + r2.height &&
+                   r1.y + r1.height > r2.y;
+        }
+
+        function createVirusParticles(x, y, color) {
+            const count = 15;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.6 + Math.random() * 1.2; 
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: 2 + Math.random() * 3,
+                    alpha: 1,
+                    decay: 0.05 + Math.random() * 0.05,
+                    color: color,
+                    type: 'virus'
+                });
+            }
+        }
+
+        function spawnDustParticles(x, y) {
+            const count = 8;
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: -Math.random() * 1.5,
+                    size: 2 + Math.random() * 3,
+                    alpha: 1,
+                    decay: 0.04 + Math.random() * 0.04,
+                    color: '#86efac', // Soft green matching grass
+                    type: 'dust'
+                });
+            }
+        }
+
+        function update() {
+            // Decaying screen shake
+            if (camera.shake > 0.1) {
+                camera.shake *= 0.85;
+            } else {
+                camera.shake = 0;
+            }
+
+            // Confetti generation for active victory screen
+            if (gameState === 'victory' && Math.random() < 0.4) {
+                const colors = ['#f43f5e', '#3b82f6', '#eab308', '#a855f7', '#10b981'];
+                particles.push({
+                    x: goal.x + goal.width / 2 + (Math.random() - 0.5) * 50,
+                    y: goal.y + 10,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: -2 - Math.random() * 3,
+                    size: 3 + Math.random() * 4,
+                    alpha: 1,
+                    decay: 0.015,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    type: 'confetti'
+                });
+            }
+
+            // Keep particles and clouds updated in both playing and victory states
+            if (gameState === 'play' || gameState === 'victory') {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.type === 'confetti') {
+                        p.vy += 0.1; // gravity for confetti
+                    }
+                    p.alpha -= p.decay;
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+
+                clouds.forEach(c => {
+                    c.x += c.speed;
+                    if (c.x > camera.worldWidth) {
+                        c.x = -150;
+                    }
+                });
+            }
+
+            if (gameState !== 'play') return;
+
+            if (player.invulnerableTime > 0) {
+                player.invulnerableTime--;
+            }
+
+            // Keyboard movement
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.direction = -1;
+            } else if (keys.right) {
+                player.vx = player.speed;
+                player.direction = 1;
+            } else {
+                player.vx *= friction;
+            }
+
+            player.vy += gravity;
+
+            // Jump
+            if ((keys.up || keys.space) && player.grounded) {
+                player.vy = -player.jumpForce;
+                player.grounded = false;
+                audio.jump();
+            }
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.x < 0) player.x = 0;
+            if (player.x > camera.worldWidth - player.width) player.x = camera.worldWidth - player.width;
+
+            // Check platforms
+            player.grounded = false;
+            for (let plat of platforms) {
+                if (player.x < plat.x + plat.width &&
+                    player.x + player.width > plat.x &&
+                    player.y < plat.y + plat.height &&
+                    player.y + player.height > plat.y) {
+                    
+                    const overlapX = Math.min(player.x + player.width - plat.x, plat.x + plat.width - player.x);
+                    const overlapY = Math.min(player.y + player.height - plat.y, plat.y + plat.height - player.y);
+
+                    if (overlapX > overlapY) {
+                        if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 6) {
+                            player.y = plat.y - player.height;
+                            player.vy = 0;
+                            player.grounded = true;
+                        } else if (player.vy < 0) {
+                            player.y = plat.y + plat.height;
+                            player.vy = 0;
+                        }
+                    } else {
+                        if (player.vx > 0) {
+                            player.x = plat.x - player.width;
+                        } else if (player.vx < 0) {
+                            player.x = plat.x + plat.width;
+                        }
+                    }
+                }
+            }
+
+            // Emit landing dust when transitioning from air to ground
+            if (!player.wasGrounded && player.grounded && player.vy >= 0) {
+                spawnDustParticles(player.x + player.width/2, player.y + player.height);
+            }
+            player.wasGrounded = player.grounded;
+
+            // Spike collision
+            for (let spike of spikes) {
+                if (checkCollision(player, spike)) {
+                    takeDamage();
+                    respawnPlayer();
+                    break;
+                }
+            }
+
+            // Hidden Trap trigger when jumping inside range (OX Quiz modal trigger)
+            for (let trap of traps) {
+                if (trap.active) {
+                    const dx = Math.abs((player.x + player.width / 2) - (trap.x + trap.width / 2));
+                    const isJumpPressed = keys.up || keys.space;
+
+                    if (dx < trap.revealRange && isJumpPressed) {
+                        if (!trap.revealed) {
+                            trap.revealed = true;
+                            audio.reveal();
+                        }
+                    }
+
+                    if (trap.revealed) {
+                        if (checkCollision(player, trap)) {
+                            // Push player out horizontally to avoid clips
+                            if (player.vx > 0) {
+                                player.x = trap.x - player.width;
+                            } else {
+                                player.x = trap.x + trap.width;
+                            }
+                            player.vx = 0;
+                            triggerTrap(trap);
+                        }
+                    }
+                }
+            }
+
+            // Slow slime loop
+            for (let enemy of enemies) {
+                enemy.x += enemy.vx;
+                if (enemy.x <= enemy.patrolStart || enemy.x + enemy.width >= enemy.patrolEnd) {
+                    enemy.vx = -enemy.vx;
+                }
+
+                if (checkCollision(player, enemy)) {
+                    if (player.invulnerableTime === 0) {
+                        takeDamage();
+                        const color = enemy.type === 'slime1' ? '#22c55e' : '#ef4444';
+                        createVirusParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, color);
+                    }
+                }
+            }
+
+            // Goal tower check
+            if (checkCollision(player, goal)) {
+                const unfinished = traps.filter(t => t.active).length;
+                if (unfinished === 0) {
+                    gameState = 'victory';
+                    document.getElementById('victory-overlay').classList.remove('hidden');
+                    audio.win();
+                }
+            }
+
+            // Camera follow
+            camera.x = player.x - canvas.width / 2;
+            if (camera.x < 0) camera.x = 0;
+            if (camera.x > camera.worldWidth - canvas.width) camera.x = camera.worldWidth - canvas.width;
+        }
+
+        function takeDamage() {
+            player.lives--;
+            player.invulnerableTime = 60; 
+            camera.shake = 12; // Trigger camera shake
+            audio.hit();
+            updateLivesUI();
+
+            if (player.lives <= 0) {
+                gameState = 'gameover';
+                document.getElementById('gameover-overlay').classList.remove('hidden');
+            }
+        }
+
+        function respawnPlayer() {
+            let safeX = 50;
+            for (let plat of platforms) {
+                if (plat.x < player.x && plat.y === 350) {
+                    safeX = plat.x + 30;
+                }
+            }
+            player.x = safeX;
+            player.y = 150;
+            player.vx = 0;
+            player.vy = 0;
+            player.grounded = false;
+            player.wasGrounded = false;
+        }
+
+        function drawPixelSprite(matrix, px, py, sizeX, sizeY, colorMap) {
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+            const blockW = sizeX / cols;
+            const blockH = sizeY / rows;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const colorId = matrix[r][c];
+                    if (colorId !== 0 && colorMap[colorId]) {
+                        ctx.fillStyle = colorMap[colorId];
+                        ctx.fillRect(
+                            Math.floor(px + c * blockW),
+                            Math.floor(py + r * blockH),
+                            Math.ceil(blockW),
+                            Math.ceil(blockH)
+                        );
+                    }
+                }
+            }
+        }
+
+        function drawPixelCloud(cx, cy, w, h, alpha = 1.0) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(cx + w*0.2, cy, w*0.6, h);
+            ctx.fillRect(cx + w*0.1, cy + h*0.2, w*0.8, h*0.6);
+            ctx.fillRect(cx, cy + h*0.4, w, h*0.4);
+            
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(cx + w*0.1, cy + h*0.7, w*0.8, h*0.2);
+            ctx.fillRect(cx + w*0.2, cy + h*0.8, w*0.6, h*0.1);
+            ctx.restore();
+        }
+
+        function drawPixelMountains() {
+            ctx.save();
+            // Scroll slow for depth
+            ctx.translate(-camera.x * 0.18, 0);
+            
+            // Layer 1: Distant Light Blue Peaks
+            ctx.fillStyle = '#93c5fd';
+            for (let i = 0; i < 6; i++) {
+                let startX = i * 500;
+                ctx.beginPath();
+                ctx.moveTo(startX, 350);
+                ctx.lineTo(startX + 120, 200);
+                ctx.lineTo(startX + 240, 250);
+                ctx.lineTo(startX + 380, 180);
+                ctx.lineTo(startX + 500, 350);
+                ctx.fill();
+            }
+
+            // Layer 2: Closer Mid-Blue Peaks
+            ctx.fillStyle = '#60a5fa';
+            for (let i = 0; i < 7; i++) {
+                let startX = i * 420 - 100;
+                ctx.beginPath();
+                ctx.moveTo(startX, 350);
+                ctx.lineTo(startX + 100, 230);
+                ctx.lineTo(startX + 200, 280);
+                ctx.lineTo(startX + 320, 220);
+                ctx.lineTo(startX + 420, 350);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawPixelPlatform(plat) {
+            const blockSize = 16;
+            const cols = Math.ceil(plat.width / blockSize);
+            const rows = Math.ceil(plat.height / blockSize);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const bx = plat.x + c * blockSize;
+                    const by = plat.y + r * blockSize;
+
+                    if (r === 0) {
+                        ctx.fillStyle = '#22c55e'; // Grass main
+                        ctx.fillRect(bx, by, blockSize, blockSize);
+                        
+                        ctx.fillStyle = '#4ade80'; // Grass highlight
+                        ctx.fillRect(bx, by, blockSize, 4);
+                        ctx.fillRect(bx + 4, by + 4, 4, 4);
+                        ctx.fillRect(bx + 12, by + 4, 4, 4);
+
+                        ctx.fillStyle = '#15803d'; // Grass dark shadow
+                        ctx.fillRect(bx, by + blockSize - 3, blockSize, 3);
+                    } else {
+                        ctx.fillStyle = '#78350f'; // Dirt main
+                        ctx.fillRect(bx, by, blockSize, blockSize);
+
+                        ctx.fillStyle = '#451a03'; // Dark dirt spot
+                        ctx.fillRect(bx + 2, by + 4, 4, 4);
+                        ctx.fillRect(bx + 10, by + 10, 4, 4);
+                        
+                        ctx.fillStyle = '#a16207'; // Light soil spot
+                        ctx.fillRect(bx + 10, by + 2, 4, 2);
+                        ctx.fillRect(bx + 2, by + 12, 4, 2);
+                    }
+                }
+            }
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
+        }
+
+        function drawPixelBarrier(trap) {
+            const stripeHeight = 16;
+            const steps = Math.ceil(trap.height / stripeHeight);
+            
+            for (let i = 0; i < steps; i++) {
+                const sy = trap.y + i * stripeHeight;
+                ctx.fillStyle = (i % 2 === 0) ? '#fbbf24' : '#1e293b';
+                ctx.fillRect(trap.x, sy, trap.width, stripeHeight);
+                
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(trap.x + 3, sy, 3, stripeHeight);
+                ctx.fillRect(trap.x + trap.width - 6, sy, 3, stripeHeight);
+            }
+
+            // Draw exclamation warning plate in the middle area of the barrier
+            const midY = trap.y + trap.height / 2 + 30;
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(trap.x - 8, midY, trap.width + 16, 32);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(trap.x - 8, midY, trap.width + 16, 32);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(trap.x + trap.width/2 - 2, midY + 6, 4, 12);
+            ctx.fillRect(trap.x + trap.width/2 - 2, midY + 22, 4, 4);
+            
+            ctx.strokeStyle = '#000000';
+            ctx.strokeRect(trap.x, trap.y, trap.width, trap.height);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Sky Background
+            ctx.fillStyle = '#7dd3fc';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Draw Far Clouds Parallax
+            clouds.forEach(cloud => {
+                if (cloud.depth < 0.2) {
+                    ctx.save();
+                    ctx.translate(-camera.x * cloud.depth, 0);
+                    drawPixelCloud(cloud.x, cloud.y, cloud.width, cloud.height, cloud.alpha);
+                    ctx.restore();
+                }
+            });
+
+            // 3. Draw Beautiful Parallax Mountains
+            drawPixelMountains();
+
+            // 4. Draw Near Clouds Parallax
+            clouds.forEach(cloud => {
+                if (cloud.depth >= 0.2) {
+                    ctx.save();
+                    ctx.translate(-camera.x * cloud.depth, 0);
+                    drawPixelCloud(cloud.x, cloud.y, cloud.width, cloud.height, cloud.alpha);
+                    ctx.restore();
+                }
+            });
+
+            // Camera view transformation with Screen Shake offset
+            ctx.save();
+            let shakeX = (Math.random() - 0.5) * camera.shake;
+            let shakeY = (Math.random() - 0.5) * camera.shake;
+            ctx.translate(-camera.x + shakeX, shakeY);
+
+            // 5. Draw Platforms
+            platforms.forEach(plat => {
+                drawPixelPlatform(plat);
+            });
+
+            // 6. Draw Spikes
+            spikes.forEach(sp => {
+                ctx.fillStyle = '#ef4444';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (let x = sp.x; x < sp.x + sp.width; x += 12) {
+                    ctx.moveTo(x, sp.y + sp.height);
+                    ctx.lineTo(x + 6, sp.y);
+                    ctx.lineTo(x + 12, sp.y + sp.height);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // 7. Draw Barriers
+            traps.forEach(trap => {
+                if (trap.active && trap.revealed) {
+                    drawPixelBarrier(trap);
+                }
+            });
+
+            // 8. Draw Goal Tower
+            ctx.fillStyle = '#1e293b'; 
+            ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(goal.x, goal.y, goal.width, goal.height);
+
+            // Spinning/Floating green cross above tower
+            const floatOffset = Math.sin(Date.now() / 250) * 8;
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(goal.x + 15, goal.y - 35 + floatOffset, 30, 30);
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(goal.x + 15, goal.y - 35 + floatOffset, 30, 30);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(goal.x + 25, goal.y - 30 + floatOffset, 10, 20);
+            ctx.fillRect(goal.x + 20, goal.y - 25 + floatOffset, 20, 10);
+
+            // Windows on Goal Tower
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(goal.x + 5, goal.y + 60, 15, 8);
+            ctx.fillRect(goal.x + 40, goal.y + 75, 15, 8);
+
+            // 9. Draw Slimes
+            enemies.forEach(slime => {
+                const isSlime1 = slime.type === 'slime1';
+                const slimeColors = isSlime1 ? {
+                    1: '#22c55e', 2: '#15803d', 3: '#ffffff', 4: '#000000'
+                } : {
+                    1: '#ef4444', 2: '#b91c1c', 3: '#ffffff', 4: '#000000'
+                };
+
+                drawPixelSprite(slimeMatrix, slime.x, slime.y, slime.width, slime.height, slimeColors);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                ctx.fillText(slime.name, slime.x + slime.width / 2, slime.y - 8);
+                ctx.textAlign = 'start';
+            });
+
+            // 10. Draw Player Cat
+            if (player.invulnerableTime === 0 || Math.floor(Date.now() / 100) % 2 === 0) {
+                ctx.save();
+                ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+                if (player.direction === -1) {
+                    ctx.scale(-1, 1);
+                }
+
+                const catColors = {
+                    1: '#f97316', 
+                    2: '#c2410c', 
+                    3: '#fca5a5', 
+                    4: '#ffffff', 
+                    5: '#000000'  
+                };
+
+                drawPixelSprite(catMatrix, -player.width/2, -player.height/2, player.width, player.height, catColors);
+                ctx.restore();
+            }
+
+            // 11. Draw Particles (Virus / Dust / Confetti)
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                
+                const px = Math.floor(p.x);
+                const py = Math.floor(p.y);
+                const sz = Math.floor(p.size);
+                
+                if (p.type === 'virus') {
+                    // 8-bit Virus Cross Shape
+                    ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+                    const arm = Math.max(1, Math.floor(sz / 3));
+                    ctx.fillRect(px - sz / 2 - arm, py - arm / 2, arm, arm);
+                    ctx.fillRect(px + sz / 2, py - arm / 2, arm, arm);
+                    ctx.fillRect(px - arm / 2, py - sz / 2 - arm, arm, arm);
+                    ctx.fillRect(px - arm / 2, py + sz / 2, arm, arm);
+                } else {
+                    // Dust & Confetti are simple rectangular pixel shards
+                    ctx.fillRect(px, py, sz, sz);
+                }
+                ctx.restore();
+            });
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
