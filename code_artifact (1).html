@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 헬스 가디언 - 기내 역학 비주얼 시뮬레이터</title>
+    <!-- Tailwind CSS 탑재 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pretendard 폰트 탑재 -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: #0B132B;
+        }
+        .seat-pulse {
+            animation: pulse-danger 2s infinite ease-in-out;
+        }
+        @keyframes pulse-danger {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.4); }
+        }
+        .air-flow-line {
+            background: linear-gradient(180deg, rgba(0, 168, 150, 0.2) 0%, rgba(128, 237, 153, 0) 100%);
+            background-size: 100% 200%;
+            animation: flowDown 3s linear infinite;
+        }
+        @keyframes flowDown {
+            0% { background-position: 100% 0%; }
+            100% { background-position: 100% 200%; }
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex items-center justify-center p-2 sm:p-6">
+
+<div class="w-full max-w-6xl bg-[#1C2541] rounded-2xl border-2 border-[#00A896] shadow-2xl overflow-hidden flex flex-col">
+    
+    <!-- 상단 네비게이션 헤더 -->
+    <header class="bg-[#0B132B]/95 p-4 sm:p-6 border-b-2 border-[#00A896] flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-gradient-to-br from-[#00A896] to-[#80ED99] rounded-xl flex items-center justify-center text-2xl shadow-lg shadow-[#00A896]/20">🛡️</div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    글로벌 헬스 가디언 <span class="text-xs bg-[#00A896] text-white px-2 py-0.5 rounded font-medium">항공-간호 시너지</span>
+                </h1>
+                <p class="text-xs sm:text-sm text-[#80ED99] font-bold">기내 역학 통제 비주얼 시뮬레이터 (Visual Cabin Simulator)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-extrabold animate-pulse">🚨 실시간 기내 감염병 전파 상황 발효</span>
+        </div>
+    </header>
+
+    <!-- 시뮬레이터 중앙 제어실 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-0">
+        
+        <!-- 왼쪽: 실시간 2D 기내 좌석 맵 & 공기역학 오버레이 (L: 7/12) -->
+        <div class="lg:col-span-7 p-4 sm:p-6 border-r border-[#00A896]/20 flex flex-col gap-4 relative">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-base sm:text-lg font-extrabold text-[#00A896] flex items-center gap-2">
+                    ✈️ 항공기 객실 모니터링 (A350 Cabin Grid)
+                </h2>
+                <div class="flex gap-2 text-xs">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-600 rounded"></span> 일반</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-orange-500 rounded"></span> 잠복</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-600 rounded"></span> 감염</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-purple-600 rounded"></span> 격리</span>
+                </div>
+            </div>
+
+            <div class="relative bg-[#0B132B] rounded-xl p-4 border border-slate-700 overflow-hidden flex flex-col items-center">
+                
+                <!-- 상단 기내 방향 지시 (조종석 방향) -->
+                <div class="w-full text-center text-xs font-bold text-slate-500 border-b border-slate-800 pb-2 mb-3 tracking-widest">
+                    ▲ FRONT OF AIRCRAFT (COCKPIT DIRECTION)
+                </div>
+
+                <!-- 자외선 살균 효과 레이어 -->
+                <div id="uvc-layer" class="absolute inset-0 bg-indigo-900/10 mix-blend-screen pointer-events-none hidden transition-all duration-500">
+                    <div class="w-full h-full opacity-30 bg-gradient-to-b from-purple-500/20 via-transparent to-purple-500/20"></div>
+                </div>
+
+                <!-- 수직 기하학적 일방향 기류 레이어 (HEPA 가동 시) -->
+                <div id="hepa-layer" class="absolute inset-0 air-flow-line pointer-events-none hidden transition-all duration-500"></div>
+
+                <!-- 기내 격리 구역 격벽 비주얼 선 -->
+                <div id="iso-border" class="absolute left-0 right-0 top-[75%] border-t-2 border-dashed border-purple-500/40 pointer-events-none hidden flex items-center justify-center">
+                    <span class="bg-purple-900 text-purple-200 text-[10px] font-extrabold px-2 py-0.5 rounded -mt-2.5">임상 간호 격리 구역 (Rows 9-10)</span>
+                </div>
+
+                <!-- 실시간 좌석 맵 그리드 -->
+                <div class="grid grid-cols-7 gap-2 max-w-md w-full relative z-10" id="cabin-grid">
+                    <!-- JS에서 10개 행(A~F열, 가운데 통로) 생성 -->
+                </div>
+
+                <!-- 하단 배기 시스템 표시 (바닥 방향 배풍) -->
+                <div class="w-full text-center text-xs font-bold text-slate-500 border-t border-slate-800 pt-2 mt-4 tracking-widest flex justify-between px-4">
+                    <span>▼ REAR / GALLEY</span>
+                    <span id="stagnant-status" class="text-orange-400 font-bold">⚠️ 열 상승 기류(난류) 제어 불능 상태</span>
+                </div>
+            </div>
+
+            <!-- 격리 선택 도구 설명 및 환자 이송 작전 -->
+            <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700/60 text-xs flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <div>
+                    <p class="font-extrabold text-[#80ED99] text-sm">💡 간호 격리 행동 요령</p>
+                    <p class="text-slate-300">격리막 설치 후 감염 승객(주황색/빨간색)을 선택하고, 맨 뒷줄 <span class="text-purple-400 font-bold">[격리 구역]</span>의 좌석을 클릭하면 감염 경로 격리 이송(Patient Flow Control)이 완료됩니다.</p>
+                </div>
+                <div id="active-action-container" class="hidden shrink-0">
+                    <span class="bg-purple-600/30 text-purple-200 border border-purple-500/50 px-3 py-2 rounded-lg font-bold animate-pulse">이송 승객 선택됨</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 방벽 설정 패널 및 실시간 역학 피드 (R: 5/12) -->
+        <div class="lg:col-span-5 p-4 sm:p-6 bg-[#0B132B]/50 flex flex-col gap-4">
+            
+            <!-- 실시간 전파 제어 현황판 -->
+            <div class="bg-[#0B132B] rounded-xl p-4 border border-[#00A896]/30">
+                <div class="flex justify-between items-baseline mb-2">
+                    <span class="text-xs text-slate-400 font-bold">🛡️ 기내 감염 확산 차단율 (목표 99.82%)</span>
+                    <span class="text-2xl font-black text-[#80ED99]" id="block-rate">30.00%</span>
+                </div>
+                <!-- 게이지바 -->
+                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                    <div id="block-progress" class="bg-gradient-to-r from-[#00A896] to-[#80ED99] h-full transition-all duration-500" style="width: 30%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <span>방역 전무 (위험도 30.0%)</span>
+                    <span>방역 융합 완료 (목표 99.82%)</span>
+                </div>
+            </div>
+
+            <!-- 자원 대시보드 -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-2 text-center">
+                    <p class="text-[10px] text-slate-400 font-bold">💼 방역 예산</p>
+                    <p class="text-lg font-extrabold text-white" id="stat-budget">1,500</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-2 text-center">
+                    <p class="text-[10px] text-slate-400 font-bold">🔋 승무원 피로도</p>
+                    <p class="text-lg font-extrabold text-white" id="stat-fatigue">0%</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-2 text-center">
+                    <p class="text-[10px] text-slate-400 font-bold">🏥 2차 감염자 수</p>
+                    <p class="text-lg font-extrabold text-red-400" id="stat-infected">0명</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <div class="border-b border-slate-700 pb-1 flex justify-between items-center">
+                    <span class="text-xs font-black text-[#00A896]">🛡️ 다층적 방역 시스템 슬라이스 구성</span>
+                    <button id="btn-start" onclick="startFlight()" class="px-4 py-1.5 bg-[#00A896] hover:bg-[#00A896]/80 text-white font-extrabold text-xs rounded-lg transition-all shadow-md shadow-[#00A896]/20">
+                        🛫 비행 출발 & 감염 시작
+                    </button>
+                </div>
+
+                <!-- 1. 항공공학 방벽 -->
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-xs font-bold text-slate-400">✈️ 1단계: 항공공학적 환경 제어</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button id="tgl-hepa" onclick="toggleBarrier('hepa', 200, 15)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                HEPA 필터 최대풍량 <span>비용: 200</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">열 상승기류 간쇄, 수직하향기류 완성 (종방향 전파 80% 감소)</span>
+                        </button>
+                        <button id="tgl-uvc" onclick="toggleBarrier('uvc', 350, 10)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                Far-UV-C 엑시머 <span>비용: 350</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">인체 무해 222nm 살균광 지속 방출 (에어로졸 전파율 50% 격감)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 임상간호 방벽 -->
+                <div class="flex flex-col gap-2">
+                    <h4 class="text-xs font-bold text-slate-400">🩺 2단계: 전문 임상 감염 통제 조치</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button id="tgl-mask" onclick="toggleBarrier('mask', 150, 10)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                N95 마스크 의무화 <span>비용: 150</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">호흡기 비말 발생율 및 감염 흡수성 차단 (감염 전파 차단율 40% 증가)</span>
+                        </button>
+                        <button id="tgl-ppe" onclick="toggleBarrier('ppe', 120, 20)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                전문 위생 PPE <span>비용: 120</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">무균 PPE 탈거 훈련 수행, 교차 감염 예방 (피로도 증가율 보정)</span>
+                        </button>
+                        <button id="tgl-iso" onclick="toggleBarrier('iso', 250, 25)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                가변 격리 구역 구획 <span>비용: 250</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">의심환자 격리이송 활성화 (맨 뒤 9~10열 공기 정체 차단벽 작동)</span>
+                        </button>
+                        <button id="tgl-wash" onclick="toggleBarrier('wash', 80, 5)" class="text-left p-2 bg-[#1C2541] border border-slate-700 hover:border-[#00A896] rounded-xl flex flex-col gap-1 transition-all">
+                            <span class="text-xs font-black text-white flex justify-between w-full">
+                                위생 거점 활성화 <span>비용: 80</span>
+                            </span>
+                            <span class="text-[10px] text-slate-400">기내 주요 동선 알코올 소독제 배치 (접촉 감염 계도 강화)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-2">
+                <h4 class="text-xs font-bold text-[#80ED99] flex items-center gap-1">📊 실시간 역학 감시 상황 통제소</h4>
+                
+                <!-- 돌발 위기 경보 오버레이 창 -->
+                <div id="crisis-box" class="hidden bg-orange-950/85 border border-orange-500 rounded-xl p-3 flex flex-col gap-2 text-xs">
+                    <span class="font-black text-orange-400 flex items-center gap-1">⚠️ [돌발 보건 이상기류 감지]</span>
+                    <p id="crisis-desc" class="text-slate-200"></p>
+                    <div id="crisis-options" class="flex flex-col gap-1.5 mt-1">
+                        <!-- 동적 주입 -->
+                    </div>
+                </div>
+
+                <!-- 기내 안전 피드 로그 -->
+                <div class="bg-black/40 border border-slate-800 rounded-lg p-3 h-32 overflow-y-auto text-[11px] font-mono leading-relaxed" id="feed-box">
+                    <p class="text-slate-500">[00:00:00] 시뮬레이션 감시기가 활성화되었습니다.</p>
+                    <p class="text-slate-500">[00:00:00] 방벽 조치 설정 후 [비행 출발] 버튼을 누르십시오.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- 하단 통계 푸터 및 설명 -->
+    <footer class="bg-[#0B132B] px-6 py-4 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 gap-3 border-t border-[#00A896]/20">
+        <div>
+            💡 <span class="text-[#80ED99] font-bold">시너지 효과 산출:</span> 다층 방벽 결합 시(스위스 치즈 모델) 기내 감염율은 최대 <span class="text-red-400">30%</span>에서 안전선인 <span class="text-[#80ED99] font-bold">0.18% (차단율 99.82%)</span>까지 통제됩니다.
+        </div>
+        <div class="flex gap-2">
+            <button onclick="resetSimulation()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-extrabold rounded-lg transition-all">
+                🔄 초기화
+            </button>
+        </div>
+    </footer>
+
+</div>
+
+<!-- 안전 모달 / 결과 오버레이 -->
+<div id="result-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#1C2541] border-2 border-[#00A896] max-w-lg w-full rounded-2xl p-6 flex flex-col gap-4 text-center">
+        <div class="text-5xl" id="modal-emoji">🏆</div>
+        <h3 class="text-xl font-black text-white" id="modal-title">비행 임무 완료</h3>
+        <p class="text-sm text-slate-300 whitespace-pre-line" id="modal-desc"></p>
+        <button onclick="closeResultModal()" class="w-full py-3 bg-[#00A896] hover:bg-[#00A896]/80 text-white font-extrabold rounded-xl transition-all">
+            새로운 비행 준비하기
+        </button>
+    </div>
+</div>
+
+<script>
+    
+    // 좌석 구조 정의 (10개 행, 6개 열: A B C [통로] D E F)
+    const ROWS = 10;
+    const COLS = ['A', 'B', 'C', 'D', 'E', 'F'];
+    
+    // 시뮬레이터 주요 상태값
+    let gameState = {
+        isRunning: false,
+        budget: 1500,
+        fatigue: 0,
+        infectedCount: 0,
+        activeBarriers: {
+            hepa: false,
+            uvc: false,
+            mask: false,
+            ppe: false,
+            iso: false,
+            wash: false
+        },
+        passengers: {}, // "row-col": { state: 'normal'|'incubation'|'infected'|'isolated', rawContamination: 0 }
+        selectedPassenger: null,
+        flightTimer: null,
+        timeElapsed: 0,
+        crisisFired: false
+    };
+
+    // 초기 상태 세팅 및 좌석 맵 빌딩
+    function initCabin() {
+        const grid = document.getElementById('cabin-grid');
+        grid.innerHTML = '';
+
+        for (let r = 1; r <= ROWS; r++) {
+            // 좌석 열 생성
+            COLS.forEach((c, idx) => {
+                // 가운데 통로 요소 추가
+                if (idx === 3) {
+                    const aisle = document.createElement('div');
+                    aisle.className = 'col-span-1 flex items-center justify-center text-[10px] text-slate-600 font-extrabold';
+                    aisle.innerText = `R${r}`;
+                    grid.appendChild(aisle);
+                }
+
+                const seatKey = `${r}-${c}`;
+                // 승객 상태 초기값 생성
+                gameState.passengers[seatKey] = {
+                    state: 'normal',
+                    rawContamination: 0
+                };
+
+                const seat = document.createElement('button');
+                seat.id = `seat-${seatKey}`;
+                seat.className = 'w-full aspect-square bg-slate-700/60 rounded-md border border-slate-600 text-slate-200 text-xs font-bold hover:scale-105 active:scale-95 transition-all flex items-center justify-center';
+                seat.innerText = `${r}${c}`;
+                seat.setAttribute('onclick', `clickPassenger('${seatKey}')`);
+                grid.appendChild(seat);
+            });
+        }
+        updateVisualGrid();
+    }
+
+    function updateVisualGrid() {
+        for (let r = 1; r <= ROWS; r++) {
+            COLS.forEach(c => {
+                const key = `${r}-${c}`;
+                const p = gameState.passengers[key];
+                const seatElement = document.getElementById(`seat-${key}`);
+                if (!seatElement) return;
+
+                // 초기 클래스 초기화
+                seatElement.className = 'w-full aspect-square rounded-md border text-xs font-bold hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center relative ';
+
+                // 상태별 비주얼 대입
+                if (p.state === 'normal') {
+                    seatElement.classList.add('bg-slate-700/60', 'border-slate-600', 'text-slate-200');
+                    seatElement.innerHTML = `<span class="text-[9px]">${r}${c}</span><span class="text-[8px] text-[#80ED99]">🟢</span>`;
+                } else if (p.state === 'incubation') {
+                    seatElement.classList.add('bg-orange-500/80', 'border-orange-400', 'text-white');
+                    seatElement.innerHTML = `<span class="text-[9px]">${r}${c}</span><span class="text-[8px]">😷</span>`;
+                } else if (p.state === 'infected') {
+                    seatElement.classList.add('bg-red-600/90', 'border-red-400', 'text-white', 'seat-pulse');
+                    seatElement.innerHTML = `<span class="text-[9px]">${r}${c}</span><span class="text-[8px]">⚠️</span>`;
+                } else if (p.state === 'isolated') {
+                    seatElement.classList.add('bg-purple-600/90', 'border-purple-400', 'text-white');
+                    seatElement.innerHTML = `<span class="text-[9px]">${r}${c}</span><span class="text-[8px]">🏥</span>`;
+                }
+
+                // 선택 강조 처리
+                if (gameState.selectedPassenger === key) {
+                    seatElement.classList.add('ring-4', 'ring-yellow-400', 'scale-105');
+                }
+            });
+        }
+
+        // HEPA, UVC, 격리 등 환경 레이어 반응형 동시 제어
+        document.getElementById('uvc-layer').style.display = gameState.activeBarriers.uvc ? 'block' : 'none';
+        document.getElementById('hepa-layer').style.display = gameState.activeBarriers.hepa ? 'block' : 'none';
+        document.getElementById('iso-border').style.display = gameState.activeBarriers.iso ? 'flex' : 'none';
+
+        const stagnantText = document.getElementById('stagnant-status');
+        if (gameState.activeBarriers.hepa) {
+            stagnantText.innerText = "🍃 HEPA 하향 수직 기류 가동 중 (무균실 상태)";
+            stagnantText.className = "text-[#80ED99] font-bold";
+        } else {
+            stagnantText.innerText = "⚠️ 열 상승 기류(난류) 제어 불능 상태";
+            stagnantText.className = "text-orange-400 font-bold";
+        }
+
+        calculateRealDefense();
+    }
+
+    // 스위스 치즈 모델 기반 감염 차단율 수학 모델 계산
+    function calculateRealDefense() {
+        // 기본 차단력 30%에서 누적 결합 확률 적용 (1 - 통과율)
+        let passingRate = 0.70; // 미방역 시 감염률 30% (즉 통과율 70%)
+
+        if (gameState.activeBarriers.hepa) passingRate *= 0.70; // 30% 차단
+        if (gameState.activeBarriers.uvc) passingRate *= 0.60;  // 40% 차단
+        if (gameState.activeBarriers.mask) passingRate *= 0.50; // 50% 차단
+        if (gameState.activeBarriers.wash) passingRate *= 0.85; // 15% 차단
+        if (gameState.activeBarriers.iso) passingRate *= 0.90;  // 10% 차단
+        if (gameState.activeBarriers.ppe) passingRate *= 0.95;  // 5% 차단
+
+        const actualDefense = (1 - passingRate) * 100;
+        
+        document.getElementById('block-rate').innerText = actualDefense.toFixed(2) + "%";
+        document.getElementById('block-progress').style.width = actualDefense + "%";
+
+        return actualDefense;
+    }
+
+    function toggleBarrier(key, cost, fatigueImpact) {
+        if (gameState.isRunning && (key === 'hepa' || key === 'iso')) {
+            addLog("⚠️ 운항 중에는 고정 하드웨어 설정 변경이 엄격히 제한됩니다.");
+            return;
+        }
+
+        if (!gameState.activeBarriers[key]) {
+            // 활성화 시도
+            if (gameState.budget < cost) {
+                addLog("❌ 방역 자산 가용 자금이 부족하여 해당 방벽을 가동할 수 없습니다.");
+                return;
+            }
+            gameState.budget -= cost;
+            gameState.fatigue += fatigueImpact;
+            gameState.activeBarriers[key] = true;
+            document.getElementById(`tgl-${key}`).classList.add('bg-[#00A896]/20', 'border-[#80ED99]');
+            
+            addLog(`🟢 방어막 구축: ${getBarrierName(key)} 조치를 가동했습니다. (자금 -${cost}, 피로도 +${fatigueImpact}%)`);
+        } else {
+            // 비활성화
+            gameState.budget += Math.floor(cost * 0.5); // 50% 환불
+            gameState.fatigue = Math.max(0, gameState.fatigue - fatigueImpact);
+            gameState.activeBarriers[key] = false;
+            document.getElementById(`tgl-${key}`).classList.remove('bg-[#00A896]/20', 'border-[#80ED99]');
+            
+            addLog(`🔴 방어막 회수: ${getBarrierName(key)} 가동을 중지하고 자산을 회수했습니다.`);
+        }
+
+        updateVisualGrid();
+        updateStats();
+    }
+
+    function getBarrierName(key) {
+        const names = { hepa: 'HEPA 필터 최대 가동', uvc: 'Far-UV-C 자외선 살균', mask: 'N95 마스크 의무화', ppe: '전면 PPE 훈련 적용', iso: '가변 격리 구획 설정', wash: '위생 거점 활성화' };
+        return names[key] || key;
+    }
+
+    function updateStats() {
+        document.getElementById('stat-budget').innerText = gameState.budget;
+        document.getElementById('stat-fatigue').innerText = gameState.fatigue + "%";
+        document.getElementById('stat-infected').innerText = gameState.infectedCount + "명";
+    }
+
+    function clickPassenger(key) {
+        if (!gameState.isRunning) {
+            addLog("✈️ 먼저 비행 출발 버튼을 눌러 승객들이 탑승하도록 조치하십시오.");
+            return;
+        }
+
+        const currentPassenger = gameState.passengers[key];
+
+        // 격리 이송 프로세스
+        if (gameState.selectedPassenger && gameState.selectedPassenger !== key) {
+            const originKey = gameState.selectedPassenger;
+            const originP = gameState.passengers[originKey];
+
+            // 이송 가능 규칙 검증
+            if (!gameState.activeBarriers.iso) {
+                addLog("⚠️ 임상간호 '격리 구역 구획' 방벽이 아직 활성화되어 있지 않아 환자를 이송할 수 없습니다.");
+                gameState.selectedPassenger = null;
+                updateVisualGrid();
+                return;
+            }
+
+            // 도착지가 격리석(9~10행)이며, 현재 비어있는 상태인지 검증
+            const rowNumber = parseInt(key.split('-')[0]);
+            if (rowNumber < 9) {
+                addLog("🏥 환자 격리 프로토콜 위반: 기내 격리 격벽은 오직 9행과 10행에만 설정되어 있습니다.");
+                gameState.selectedPassenger = null;
+                updateVisualGrid();
+                return;
+            }
+
+            if (currentPassenger.state !== 'normal') {
+                addLog("⚠️ 해당 격리석에는 이미 다른 승객이 점유 중입니다. 무균 격리 규칙 위반입니다.");
+                gameState.selectedPassenger = null;
+                updateVisualGrid();
+                return;
+            }
+
+            // 이송 실행
+            addLog(`🚑 [간호 역학 중재] 감염 증세를 나타낸 ${originKey} 좌석의 승객을 후방 격리 구역 ${key}로 격리 격리 이송 완료.`);
+            
+            // 데이터 교환
+            currentPassenger.state = 'isolated';
+            currentPassenger.rawContamination = originP.rawContamination;
+            
+            originP.state = 'normal';
+            originP.rawContamination = 0;
+
+            gameState.selectedPassenger = null;
+            document.getElementById('active-action-container').classList.add('hidden');
+            updateVisualGrid();
+            return;
+        }
+
+        // 일반적인 승객 상태 모니터링 선택
+        if (currentPassenger.state === 'infected' || currentPassenger.state === 'incubation') {
+            if (gameState.activeBarriers.iso) {
+                gameState.selectedPassenger = key;
+                document.getElementById('active-action-container').classList.remove('hidden');
+                addLog(`📋 ${key}번 전파 위험 승객이 지정되었습니다. 이동 가능한 격리 구역(9-10열) 빈 좌석을 클릭하여 이송하십시오.`);
+            } else {
+                addLog(`📋 ${key}번 승객 진단: 기침 발현 및 바이러스 배출 의심 상태.`);
+            }
+        } else {
+            addLog(`📋 ${key}번 승객 진단: 정상 바이탈 사인 유지 중.`);
+            gameState.selectedPassenger = null;
+            document.getElementById('active-action-container').classList.add('hidden');
+        }
+        updateVisualGrid();
+    }
+
+    function startFlight() {
+        if (gameState.isRunning) return;
+        
+        gameState.isRunning = true;
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-start').innerText = "✈️ 운항 및 검역 중...";
+        document.getElementById('btn-start').classList.replace('bg-[#00A896]', 'bg-slate-700');
+
+        addLog("🛫 항공기가 이륙 기동 후 무균 고도 비행 단계에 합류했습니다.");
+
+        // 인덱스 전파자(최초 감염환자) 무작위 선정 배치 (비지니스석 등을 고려하여 앞/중간 부위 배치)
+        const randRow = Math.floor(Math.random() * 5) + 2; // 2~6행 중 무작위
+        const randCol = COLS[Math.floor(Math.random() * COLS.length)];
+        const indexKey = `${randRow}-${randCol}`;
+        
+        gameState.passengers[indexKey].state = 'infected';
+        gameState.passengers[indexKey].rawContamination = 100;
+        
+        addLog(`☣️ 역학 경보: ${indexKey}번 좌석에 감염 잠복 상태의 초발 인덱스 승객이 탑승한 것으로 모니터링 추정됩니다!`);
+        updateVisualGrid();
+
+        // 1초 단위 실시간 시뮬레이션 타이머 가동
+        gameState.flightTimer = setInterval(() => {
+            gameState.timeElapsed++;
+            
+            // 바이러스 전파 연산 작동
+            calculateVirusSpread();
+
+            // 돌발 위기 이벤트 트리거 (비행 12초 차)
+            if (gameState.timeElapsed === 12 && !gameState.crisisFired) {
+                fireCrisis();
+            }
+
+            // 시뮬레이션 종료 판정 (40초 경과 시 종료)
+            if (gameState.timeElapsed >= 40) {
+                endFlight();
+            }
+        }, 1000);
+    }
+
+    function calculateVirusSpread() {
+        const nextContamination = {};
+
+        // 1단계: 기존 부유 에어로졸 소멸 및 감량 효과 적용
+        for (let r = 1; r <= ROWS; r++) {
+            COLS.forEach(c => {
+                const key = `${r}-${c}`;
+                nextContamination[key] = gameState.passengers[key].rawContamination * 0.8; // 매 초 자연 배기
+            });
+        }
+
+        // 2단계: 감염원 승객의 바이러스 방출 계산
+        for (let r = 1; r <= ROWS; r++) {
+            COLS.forEach(c => {
+                const key = `${r}-${c}`;
+                const p = gameState.passengers[key];
+                
+                if (p.state === 'infected' || p.state === 'incubation') {
+                    // 기본 방출 강도 설정
+                    let emission = 15;
+                    if (gameState.activeBarriers.mask) emission *= 0.5; // 마스크 장벽의 위력
+
+                    nextContamination[key] += emission;
+
+                    // 주변으로 기내 전파 확산 모델
+                    spreadToSurrounding(r, c, emission, nextContamination);
+                }
+            });
+        }
+
+        // 3단계: 누적 오염도를 승객 상태 변화로 업데이트
+        let currentInfected = 0;
+        for (let r = 1; r <= ROWS; r++) {
+            COLS.forEach(c => {
+                const key = `${r}-${c}`;
+                const p = gameState.passengers[key];
+                p.rawContamination = Math.min(100, nextContamination[key] || 0);
+
+                if (p.state === 'normal' && p.rawContamination > 35) {
+                    // 감염 잠복 상태 유발
+                    p.state = 'incubation';
+                    addLog(`😷 감염 확산: ${key}번 승객이 바이러스 누적 농도 기준선을 초과하여 에어로졸 잠복 전염 상태에 도달했습니다.`);
+                } else if (p.state === 'incubation' && p.rawContamination > 65) {
+                    // 확진 상태 돌입
+                    p.state = 'infected';
+                    addLog(`🚨 감염 격화: ${key}번 승객이 고농도 감염원으로 기내에서 활동성 바이러스를 배출하기 시작했습니다.`);
+                }
+
+                if (p.state === 'infected' || p.state === 'incubation') {
+                    currentInfected++;
+                }
+            });
+        }
+
+        gameState.infectedCount = currentInfected - 1; // 초발 감염원 제외한 2차 감염수 계산
+        if (gameState.infectedCount < 0) gameState.infectedCount = 0;
+        
+        updateStats();
+        updateVisualGrid();
+    }
+
+    // 기내 공기 흐름에 따른 전파 행렬 계산식
+    function spreadToSurrounding(row, col, emission, nextContamination) {
+        // HEPA 필터가 꺼져 있는 경우: 열 상승 기류(난류)로 인해 사방 및 전후 3열 이상 무작위 전파 발생
+        const range = gameState.activeBarriers.hepa ? 1 : 2; // HEPA 활성화 시 감염 범위가 인접 1칸으로 엄격 차단
+        const dispersionFactor = gameState.activeBarriers.uvc ? 0.05 : 0.12; // Far-UV-C 자외선이 켜져있으면 공간 부유 바이러스 실시간 중화
+
+        for (let dr = -range; dr <= range; dr++) {
+            for (let dc = -range; dc <= range; dc++) {
+                if (dr === 0 && dc === 0) continue;
+
+                const targetRow = row + dr;
+                const colIdx = COLS.indexOf(col) + dc;
+
+                if (targetRow >= 1 && targetRow <= ROWS && colIdx >= 0 && colIdx < COLS.length) {
+                    const targetCol = COLS[colIdx];
+                    const targetKey = `${targetRow}-${targetCol}`;
+
+                    // 격리석(9~10열)에 격벽이 정상 작동하는 경우에는 전파가 내부/외부로 흐르지 못함
+                    if (gameState.activeBarriers.iso) {
+                        const isTargetInIso = targetRow >= 9;
+                        const isSelfInIso = row >= 9;
+                        if (isTargetInIso !== isSelfInIso) continue; // 격벽 차단 성공
+                    }
+
+                    // 거리 반비례 가중치 계산
+                    const dist = Math.sqrt(dr*dr + dc*dc);
+                    nextContamination[targetKey] += (emission * dispersionFactor) / dist;
+                }
+            }
+        }
+    }
+
+    function fireCrisis() {
+        const crisisBox = document.getElementById('crisis-box');
+        const desc = document.getElementById('crisis-desc');
+        const opts = document.getElementById('crisis-options');
+
+        crisisBox.classList.remove('hidden');
+
+        const rand = Math.random();
+        if (rand < 0.5) {
+            desc.innerHTML = `<strong>기내 기온 상승 및 환기 오염 누출 경보</strong><br>항공 내부 기온이 상승하며 승객들의 호흡 밀도가 극대화되고 있습니다. 에어로졸 정체 위험이 평소 대비 2배 가중되는 상황입니다.`;
+            opts.innerHTML = `
+                <button onclick="resolveCrisis(150, 10, 'HEPA 압력을 기내 긴급 공조 규격으로 강제 가압 설정하여 축적된 난류 가스를 기내 밖으로 강제 여과 배기 처리했습니다.')" class="bg-slate-900 border border-orange-500 text-slate-100 hover:bg-slate-800 p-2 text-left rounded">옵션 A: 비상 공조 순환 가압 제어 가동 (예산 -150)</button>
+                <button onclick="resolveCrisis(0, 30, '추가 에너지 사용을 중지하고 지상 보건당국 역학 분석에 의존합니다. 기내 승무원들에게 손 위생 방송을 의무적으로 긴급 지시했습니다.')" class="bg-slate-900 border border-orange-500 text-slate-100 hover:bg-slate-800 p-2 text-left rounded">옵션 B: 수동적 예방 방송 조치만 이행 (피로도 +30%)</button>
+            `;
+        } else {
+            desc.innerHTML = `<strong>기침 및 불안감 호소 승객 돌발 항의</strong><br>중앙열 승객들이 감염 우려 승객과의 자리 공유를 극단적으로 두려워하며 집단 불안 증세를 보입니다. 전문 간호 및 위생 처단이 급선무입니다.`;
+            opts.innerHTML = `
+                <button onclick="resolveCrisis(100, 15, '전문 임상 마스크 교환 지침 및 손 위생 알코올 패드를 전격 지급하여 불안감을 완벽 진정시키고 비말 누적을 차단했습니다.')" class="bg-slate-900 border border-orange-500 text-slate-100 hover:bg-slate-800 p-2 text-left rounded">옵션 A: 감염 교육 간호 위생 키트 긴급 살포 (예산 -100)</button>
+                <button onclick="resolveCrisis(0, 0, '별다른 중재를 보류했습니다. 불안해진 승객들이 통로로 이탈하여 열 상승 기류를 난잡하게 흩뿌리고 교차 오염을 대폭 확대시킵니다.', true)" class="bg-slate-900 border border-orange-500 text-slate-100 hover:bg-slate-800 p-2 text-left rounded">옵션 B: 상황 보류 및 현 상태 방치 (통제선 파열 리스크 유발)</button>
+            `;
+        }
+    }
+
+    function resolveCrisis(budgetCost, fatigueCost, message, penalty = false) {
+        gameState.budget = Math.max(0, gameState.budget - budgetCost);
+        gameState.fatigue = Math.min(100, gameState.fatigue + fatigueCost);
+
+        if (penalty) {
+            // 위기를 그냥 넘겨 벌점으로 승객 감염 농도 전체 추가 확산 적용
+            for (let r = 1; r <= ROWS; r++) {
+                COLS.forEach(c => {
+                    gameState.passengers[`${r}-${c}`].rawContamination += 15;
+                });
+            }
+        }
+
+        addLog(`📢 돌발 대응 결과: ${message}`);
+        document.getElementById('crisis-box').classList.add('hidden');
+        updateStats();
+        updateVisualGrid();
+    }
+
+    function endFlight() {
+        clearInterval(gameState.flightTimer);
+        gameState.isRunning = false;
+
+        const defenseScore = calculateRealDefense();
+        const totalSick = gameState.infectedCount;
+
+        const modal = document.getElementById('result-modal');
+        const emoji = document.getElementById('modal-emoji');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+
+        // 성공 여부 판정 기준
+        if (defenseScore >= 90.00 && totalSick <= 1) {
+            emoji.innerText = "🏆";
+            title.innerText = "임무 성공: 마스터 헬스 가디언";
+            desc.innerHTML = `<strong>다층 방어 기내 방역 시스템 완벽 통제!</strong>\n\n최종 감염 차단율: <strong>${defenseScore.toFixed(2)}%</strong>\n2차 누적 감염 수: <strong>${totalSick}명</strong>\n\n승무원의 통솔력과 감염 간호사의 과학적 설계가 이끌어낸 합작품입니다. 글로벌 항공 네트워크를 완벽한 무균 시스템으로 전환했습니다!`;
+        } else if (totalSick <= 3) {
+            emoji.innerText = "🥈";
+            title.innerText = "임무 완료: 세이프 플라이트 등급";
+            desc.innerHTML = `<strong>안정적인 보건 제어가 달성되었습니다.</strong>\n\n최종 감염 차단율: <strong>${defenseScore.toFixed(2)}%</strong>\n2차 누적 감염 수: <strong>${totalSick}명</strong>\n\n중첩 방어 슬라이스를 조금 더 신속하게 구성했거나 적극적인 환자 이송 격리를 행했다면 완벽한 감염 차단율(99.82%)을 획득할 수 있었습니다.`;
+        } else {
+            emoji.innerText = "🚑";
+            title.innerText = "임무 실패: 격리망 붕괴";
+            desc.innerHTML = `<strong>기내 슈퍼스프레더 전파 상황이 도래했습니다.</strong>\n\n최종 감염 차단율: <strong>${defenseScore.toFixed(2)}%</strong>\n2차 누적 감염 수: <strong>${totalSick}명</strong>\n\nHEPA 환기를 통과한 기류가 정체되고 마스크 미착용과 격리 해제로 인해 비말이 폭증했습니다. 스위스 치즈 방역 모델의 구멍이 한 줄로 뚫린 결과입니다.`;
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeResultModal() {
+        document.getElementById('result-modal').classList.add('hidden');
+        resetSimulation();
+    }
+
+    function resetSimulation() {
+        if (gameState.flightTimer) {
+            clearInterval(gameState.flightTimer);
+        }
+
+        gameState = {
+            isRunning: false,
+            budget: 1500,
+            fatigue: 0,
+            infectedCount: 0,
+            activeBarriers: {
+                hepa: false,
+                uvc: false,
+                mask: false,
+                ppe: false,
+                iso: false,
+                wash: false
+            },
+            passengers: {},
+            selectedPassenger: null,
+            flightTimer: null,
+            timeElapsed: 0,
+            crisisFired: false
+        };
+
+        // UI 토글 버튼 스타일 전체 해제
+        const keys = ['hepa', 'uvc', 'mask', 'ppe', 'iso', 'wash'];
+        keys.forEach(key => {
+            document.getElementById(`tgl-${key}`).classList.remove('bg-[#00A896]/20', 'border-[#80ED99]');
+        });
+
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-start').innerText = "🛫 비행 출발 & 감염 시작";
+        document.getElementById('btn-start').classList.replace('bg-slate-700', 'bg-[#00A896]');
+        document.getElementById('crisis-box').classList.add('hidden');
+
+        const logBox = document.getElementById('feed-box');
+        logBox.innerHTML = `
+            <p class="text-slate-500">[00:00:00] 시뮬레이션 감시기가 활성화되었습니다.</p>
+            <p class="text-slate-500">[00:00:00] 방벽 조치 설정 후 [비행 출발] 버튼을 누르십시오.</p>
+        `;
+
+        initCabin();
+        updateStats();
+    }
+
+    function addLog(msg) {
+        const logBox = document.getElementById('feed-box');
+        const elapsed = gameState.timeElapsed < 10 ? `0${gameState.timeElapsed}` : gameState.timeElapsed;
+        
+        const logItem = document.createElement('p');
+        logItem.className = 'text-slate-300';
+        logItem.innerHTML = `<span class="text-[#00A896]">[00:00:${elapsed}]</span> ${msg}`;
+        logBox.appendChild(logItem);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // 윈도우 최초 실행 시 가동
+    window.onload = function() {
+        initCabin();
+    };
+</script>
+</body>
+</html>

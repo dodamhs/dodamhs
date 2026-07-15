@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>라스트 바리케이드: 무조건 돌발 카드 (Hardcore 10 Days)</title>
+    <style>
+        body { background-color: #121212; color: #e5e5e5; font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 20px; transition: background 0.5s; overflow-x: hidden; }
+        .wrapper { max-width: 950px; margin: 0 auto; background-color: #1e1e1e; padding: 25px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.7); border: 1px solid #333; transition: all 0.5s ease; position: relative; }
+        h1 { color: #ff3333; text-align: center; margin-top: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,51,51,0.3); }
+        
+        #shelter-canvas { background-color: #151515; display: block; margin: 0 auto 20px auto; border: 2px solid #444; border-radius: 6px; transition: background 0.5s, border-color 0.5s; }
+        
+        .grid-panel { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .status-box { background: #252525; padding: 15px; border-radius: 8px; border: 1px solid #444; transition: all 0.5s; position: relative; }
+        .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 14px; }
+        .status-item { background: #1a1a1a; padding: 8px; border-radius: 4px; border-left: 4px solid #ff3333; transition: all 0.3s; }
+        .status-val { font-weight: bold; color: #ffb86c; float: right; transition: color 0.3s, transform 0.3s; display: inline-block; }
+        
+        /* 값 변동 피드백 */
+        .value-pop { transform: scale(1.3); color: #ff3333 !important; }
+        .value-push { transform: scale(1.3); color: #00ff66 !important; }
+
+        .log-container { background-color: #0b0b0b; border: 1px solid #333; height: 180px; overflow-y: auto; padding: 12px; font-size: 13px; font-family: 'Courier New', monospace; border-radius: 6px; margin-bottom: 20px; }
+        .action-zone { background: #2a2a2a; padding: 20px; border-radius: 8px; border: 1px solid #555; min-height: 240px; transition: background 0.5s, border-color 0.5s; }
+        
+        button { background: #ff3333; color: #fff; border: none; padding: 11px 16px; margin: 6px 3px; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.2s; position: relative; overflow: hidden; }
+        button:hover { background: #ff5555; box-shadow: 0 0 8px rgba(255,85,85,0.6); }
+        button:active { transform: translateY(1.5px); }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        /* 화려한 무작위 이벤트 카드 비주얼 */
+        .event-card { background: #221430; border: 3px solid #b85cff; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(184,92,255,0.6); animation: card-appear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes card-appear {
+            from { transform: scale(0.8) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .warning { color: #ff4444; font-weight: bold; }
+        .success { color: #00ff66; font-weight: bold; }
+        .info { color: #00d2ff; font-weight: bold; }
+        
+        .hidden { display: none !important; }
+        
+        /* 야간 효과 */
+        .night-blackout { background-color: #050505 !important; border-color: #ff1111 !important; box-shadow: 0 0 35px rgba(255, 0, 0, 0.55); }
+        .night-zone-bg { background-color: #120a0a !important; border-color: #aa2222 !important; }
+        .night-status-bg { background-color: #101015 !important; }
+        
+        .morning-flash-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(184, 92, 255, 0.4); pointer-events: none; z-index: 9999;
+            opacity: 0; transition: opacity 0.2s ease-out;
+        }
+        .flash-active { opacity: 1; transition: none; }
+
+        @keyframes danger-pulse {
+            0% { border-color: #444; box-shadow: none; }
+            50% { border-color: #ff3333; box-shadow: 0 0 12px rgba(255,51,51,0.5); }
+            100% { border-color: #444; box-shadow: none; }
+        }
+        .danger-alert { animation: danger-pulse 1s infinite !important; }
+
+        .log-line { animation: log-fade 0.4s ease-out forwards; }
+        @keyframes log-fade {
+            from { opacity: 0; transform: translateX(-5px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="flash-screen" class="morning-flash-overlay"></div>
+
+<div class="wrapper" id="main-window">
+    <h1 id="main-title">🛡️ LAST BARRICADE: 10 DAYS CARDS</h1>
+    
+    <canvas id="shelter-canvas" width="900" height="220"></canvas>
+
+    <div class="grid-panel">
+        <div>
+            <!-- [🚨 아침 100% 확정 돌발 이벤트 카드 창] -->
+            <div id="mega-event-zone" class="event-card hidden">
+                <h3 id="mega-title" style="color:#d699ff; margin-top:0; font-size: 20px;">🃏 돌발 무작위 카드 발동!</h3>
+                <p id="mega-desc" style="line-height: 1.6; font-size: 15px;">내용</p>
+                <hr style="border: 0; border-top: 1px solid #443555; margin: 15px 0;">
+                <div id="mega-options"></div>
+            </div>
+
+            <!-- 통제 센터 -->
+            <div id="game-controls" class="action-zone">
+                <h3 id="phase-title" style="margin-top:0; color:#00d2ff;">☀️ 낮 경영 단계</h3>
+                
+                <!-- 1단계: 배급 -->
+                <div id="step1-zone">
+                    <p><strong>[1단계] 오늘의 생존 자원 배급 결정</strong></p>
+                    <button onclick="distribute('equal')">⚖️ 평등 배급 (식량 -10, 의약품 -5)</button>
+                    <button onclick="distribute('elite')">👑 특권층 우대 (식량 -6, 의약품 -3)</button>
+                    <button onclick="distribute('starve')">❌ 배급 전면 보류 (자원 소모 0 | 불만도 폭증!!)</button>
+                </div>
+                
+                <!-- 2단계: 검역 -->
+                <div id="step2-zone" class="hidden">
+                    <p><strong>[2단계] 국경 검역소 통제 (남은 심사자: <span id="rem-immigrants">3</span>명)</strong></p>
+                    <div id="immigrant-card" style="background:#1a1a1a; padding:12px; border-radius:6px; border:1px solid #444;"></div>
+                </div>
+
+                <!-- 3단계: 원정 -->
+                <div id="step3-zone" class="hidden">
+                    <p><strong>[3단계] 위험 구역 외곽 원정대 파견</strong></p>
+                    <button onclick="goExpedition()">🎒 하이리스크 자원 약탈 원정</button>
+                    <button onclick="skipExpedition()">🛡️ 방어 태세 전환 (야간 방어 강화)</button>
+                </div>
+
+                <!-- 4단계: 밤 위기 대응 -->
+                <div id="night-zone" class="hidden">
+                    <p id="night-brief">밤이 되었습니다.</p>
+                    <div id="night-choices"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 관제탑 -->
+        <div class="status-box" id="status-box-el">
+            <h3 style="margin-top:0; text-align:center; color:#ffb86c;">📊 기지 관제탑</h3>
+            <div class="status-grid">
+                <div class="status-item">📅 생존 <span id="val-day" class="status-val">1</span>일차</div>
+                <div class="status-item">🧬 백신 <span id="val-vaccine" class="status-val">0</span>%</div>
+                <div class="status-item">🍞 식량 <span id="val-food" class="status-val">45</span></div>
+                <div class="status-item">💊 의약품 <span id="val-med" class="status-val">18</span></div>
+                <div class="status-item">☣️ 내부감염 <span id="val-inf" class="status-val">0</span>명</div>
+                <div class="status-item">🔒 격리소 <span id="val-quar" class="status-val">0/5</span></div>
+                <div class="status-item">👑 특권층 <span id="val-elite" class="status-val">12</span>명</div>
+                <div class="status-item">🤝 난민층 <span id="val-poor" class="status-val">25</span>명</div>
+            </div>
+            
+            <div style="margin-top:15px; background:#111; padding:10px; border-radius:5px;">
+                <div style="font-size:12px; color:#ff9999; font-weight: bold;">💀 난이도 배율: <span id="val-difficulty" style="float:right;">x1.30</span></div>
+                <div style="font-size:11px; color:#aaa; margin-bottom:10px;">★ 목표: 제 10일차 밤을 견뎌라! ★</div>
+                
+                <div style="font-size:12px;">👑 특권층 불만도 (<span id="txt-e-anger">0</span>%)</div>
+                <div style="background:#444; width:100%; height:8px; border-radius:4px; margin-bottom:10px;">
+                    <div id="bar-elite-anger" style="background:orange; width:0%; height:100%; border-radius:4px; transition: width 0.4s ease;"></div>
+                </div>
+                <div style="font-size:12px;">🤝 난민층 소외도 (<span id="txt-p-anger">0</span>%)</div>
+                <div style="background:#444; width:100%; height:8px; border-radius:4px; margin-bottom:5px;">
+                    <div id="bar-poor-anger" style="background:red; width:0%; height:100%; border-radius:4px; transition: width 0.4s ease;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="color:#aaa; margin-bottom:5px;">📋 작전 통신 일지</h3>
+    <div class="log-container" id="log-anchor"></div>
+</div>
+
+<script>
+    let G = {
+        day: 1, phase: 'day', vaccine: 0, food: 45, med: 18,
+        elite: 12, poor: 25, infected: 0, quarantine: 0,
+        eliteAnger: 0, poorAnger: 0,
+        queue: [], currentImmigrant: null
+    };
+
+    const canvas = document.getElementById('shelter-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // [더 화끈하고 매워진 무작위 카드 8종 풀]
+    const MORNING_CARDS = [
+        {
+            title: "💼 🃏 [사건] 암시장 브로커의 은밀한 거래",
+            desc: "야바위꾼 브로커가 밤새 방벽 밑으로 들어왔습니다. '귀한 의약품을 조금 떼어주면, 저 밑바닥 하층민 구역에서 징수한 대량의 통밀 압착 식량을 주겠소. 어차피 굶어 죽을 놈들 거 가로챈 거지.'",
+            opts: `
+                <button onclick="resolveCard('market_ok')">🤝 거래 승인 (의약품 -5, 식량 +18)</button>
+                <button onclick="resolveCard('market_no')">❌ 불법 거래 차단 (아무 일 없음)</button>
+            `
+        },
+        {
+            title: "🧪 🃏 [사건] LEVEL 2 수석 연구원의 탈옥",
+            desc: "연구원 한 명이 백신 정밀 원료를 훔쳐 난민 구역의 감염된 딸을 치료하려다 적발되었습니다. 사령관님, 격리 원칙대로 엄벌할까요?",
+            opts: `
+                <button onclick="resolveCard('jail')">🔒 즉시 투옥 (백신 -10%, 난민 소외도 +15)</button>
+                <button onclick="resolveCard('forgive')">🤫 눈감아준다 (의약품 -4, 특권층 불만도 +20)</button>
+            `
+        },
+        {
+            title: " Rats 🃏 [위기] 보급 창고 변이 쥐떼 공습",
+            desc: "식량 창고에 바이러스에 변이된 거대 쥐들이 침투했습니다! 창고 전체를 의약품으로 독독하게 소독하지 않으면 식량이 썩어 나갈 겁니다.",
+            opts: `
+                <button onclick="resolveCard('rats_med')">💊 방역제 투입 (의약품 -6)</button>
+                <button onclick="resolveCard('rats_lose')">🍞 방치한다 (식량 -15)</button>
+            `
+        },
+        {
+            title: "🔥 🃏 [사건] 하층민 구역의 배급 중단 폭동 시위",
+            desc: "난민들의 영양 상태가 극도로 악화되자, 주민 대표들이 사령부 정문 앞에서 긴급 구호 배급을 요구하며 쇠파이프를 들고 연좌시위를 시작했습니다.",
+            opts: `
+                <button onclick="resolveCard('protest_give')">🍞 창고 강제 개방 (식량 -8, 난민 소외도 -25)</button>
+                <button onclick="resolveCard('protest_ignore')">❌ 경비대 무력 해산 (난민 소외도 +20)</button>
+            `
+        },
+        {
+            title: "⚡ 🃏 [위기] 중앙 전력 코어 과열",
+            desc: "기지의 중앙 동력장치에 과부하가 걸렸습니다. 백신 배양기 전력을 유지하려면 방벽 방어 시스템을 잠시 꺼야 합니다!",
+            opts: `
+                <button onclick="resolveCard('power_vaccine')">🧬 백신 연구 우선 (백신 +15%, 난민 소외도 +15)</button>
+                <button onclick="resolveCard('power_wall')">🛡️ 방벽 유지 우선 (식량 -10, 의약품 -3)</button>
+            `
+        },
+        {
+            title: "📢 🃏 [사건] 난민 구역 사이비 교주의 선동",
+            desc: "스스로를 '종말의 구원자'라 칭하는 자가 하층 난민 구역에서 '지도부가 우리를 가두고 굶겨 죽이려 한다'며 선동 선전을 펼치고 있습니다.",
+            opts: `
+                <button onclick="resolveCard('cult_kill')">🔫 비밀리에 암살 (특권층 불만도 +10, 난민 소외도 +10)</button>
+                <button onclick="resolveCard('cult_leave')">🗣️ 선동을 방치한다 (내부 감염자 +1, 난민 소외도 +25)</button>
+            `
+        },
+        {
+            title: "📡 🃏 [풍요] 연방 특수부대의 조난 신호",
+            desc: "외부 오염 구역에서 연방 수송기가 추락했습니다. 난민 정찰 인력을 거칠게 몰아붙여 파견하면 많은 군용 물자를 건질 수 있습니다.",
+            opts: `
+                <button onclick="resolveCard('airdrop')">🎒 특공대 긴급 파견 (식량 +15, 의약품 +8)</button>
+            `
+        },
+        {
+            title: "🧪 🃏 [사건] 의문의 민간 민간 요법",
+            desc: "난민들이 밖에서 주워온 오염된 잡초를 달여 마시면 감염이 낫는다는 소문을 퍼뜨리고 있습니다. 약품을 주어 소문을 잠재울까요?",
+            opts: `
+                <button onclick="resolveCard('herb_med')">💊 정품 의약품 배포 (의약품 -5)</button>
+                <button onclick="resolveCard('herb_ignore')">❌ 알아서 하게 둔다 (내부 감염자 +2)</button>
+            `
+        }
+    ];
+
+    function initGame() {
+        log("🚨 [하드코어 모드 가동] 기지 비상 자원이 극도로 제한됩니다.", 'warn');
+        log("🎯 [무작위 시스템 완벽 작동] 이제 매일 아침 100% 무조건 돌발 이벤트 카드가 등장합니다!", 'info');
+        updateUI();
+    }
+
+    function log(text, type='') {
+        const box = document.getElementById('log-anchor');
+        let cls = 'log-line';
+        if(type==='warn') cls += " warning";
+        if(type==='succ') cls += " success";
+        if(type==='info') cls += " info";
+        
+        const line = document.createElement('div');
+        line.className = cls;
+        line.innerHTML = `[${G.day}일차] ${text}`;
+        box.appendChild(line);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function visualFeedback(elementId, type) {
+        const el = document.getElementById(elementId);
+        if(!el) return;
+        const cls = type === 'up' ? 'value-push' : 'value-pop';
+        el.classList.add(cls);
+        setTimeout(() => el.classList.remove(cls), 400);
+    }
+
+    function triggerFlash() {
+        const flash = document.getElementById('flash-screen');
+        flash.classList.add('flash-active');
+        setTimeout(() => {
+            flash.classList.remove('flash-active');
+        }, 150);
+    }
+
+    function getDifficultyMultiplier() {
+        return (1.3 + (G.day - 1) * 0.35).toFixed(2);
+    }
+
+    function updateUI() {
+        const prevFood = parseInt(document.getElementById('val-food').innerText || 0);
+        const prevMed = parseInt(document.getElementById('val-med').innerText || 0);
+        const prevInf = parseInt(document.getElementById('val-inf').innerText || 0);
+
+        document.getElementById('val-day').innerText = G.day;
+        document.getElementById('val-vaccine').innerText = G.vaccine;
+        document.getElementById('val-food').innerText = G.food;
+        document.getElementById('val-med').innerText = G.med;
+        document.getElementById('val-inf').innerText = G.infected;
+        document.getElementById('val-quar').innerText = G.quarantine + "/5";
+        document.getElementById('val-elite').innerText = G.elite;
+        document.getElementById('val-poor').innerText = G.poor;
+        document.getElementById('val-difficulty').innerText = "x" + getDifficultyMultiplier();
+        
+        document.getElementById('txt-e-anger').innerText = G.eliteAnger;
+        document.getElementById('bar-elite-anger').style.width = G.eliteAnger + '%';
+        document.getElementById('txt-p-anger').innerText = G.poorAnger;
+        document.getElementById('bar-poor-anger').style.width = G.poorAnger + '%';
+
+        if (G.food < prevFood) visualFeedback('val-food', 'down');
+        if (G.food > prevFood) visualFeedback('val-food', 'up');
+        if (G.med < prevMed) visualFeedback('val-med', 'down');
+        if (G.med > prevMed) visualFeedback('val-med', 'up');
+        if (G.infected > prevInf) visualFeedback('val-inf', 'down');
+
+        const statusBox = document.getElementById('status-box-el');
+        if(G.poorAnger >= 60 || G.infected >= 2) {
+            statusBox.classList.add('danger-alert');
+        } else {
+            statusBox.classList.remove('danger-alert');
+        }
+
+        renderBase();
+        checkGameOver();
+    }
+
+    function renderBase() {
+        ctx.clearRect(0,0,900,220);
+        ctx.fillStyle = G.phase === 'night' ? "#0a0a0a" : "#1e1e1e"; 
+        ctx.fillRect(0,0,900,220);
+
+        ctx.fillStyle = "#333"; ctx.fillRect(720, 0, 25, 220);
+        let zombieCount = Math.min(30, 8 + G.day * 3);
+        for(let i=0; i<zombieCount; i++) {
+            ctx.fillStyle = "#ff1111"; ctx.fillRect(750 + (i*10)%120, 20 + (i*6.5), 5, 5);
+        }
+
+        // LEVEL 2
+        ctx.fillStyle = G.phase === 'night' ? "#121a12" : "#223322"; ctx.fillRect(30, 20, 670, 80);
+        ctx.strokeStyle = "#444"; ctx.strokeRect(30, 20, 670, 80);
+        ctx.fillStyle = "#88ff88"; ctx.font = "11px sans-serif"; ctx.fillText("🧪 LEVEL 2: 연구본부 (특권층 우대구역)", 40, 35);
+        for(let i=0; i<G.elite; i++) {
+            ctx.fillStyle = "#3399ff"; ctx.beginPath(); ctx.arc(50 + (i%20)*28, 60 + Math.floor(i/20)*15, 5, 0, Math.PI*2); ctx.fill();
+        }
+
+        // LEVEL 1
+        ctx.fillStyle = G.poorAnger > 50 ? "#422" : (G.phase === 'night' ? "#101520" : "#1a2535"); ctx.fillRect(30, 120, 520, 80);
+        ctx.strokeRect(30, 120, 520, 80);
+        ctx.fillStyle = "#ff8888"; ctx.fillText("🤝 LEVEL 1: 주거 구역 (난민 기지)", 40, 135);
+        for(let i=0; i<G.poor; i++) {
+            ctx.fillStyle = "#e5e5e5"; ctx.beginPath(); ctx.arc(50 + (i%15)*28, 160 + Math.floor(i/15)*15, 4, 0, Math.PI*2); ctx.fill();
+        }
+
+        // 바이러스 & 격리동
+        for(let i=0; i<G.infected; i++) {
+            ctx.fillStyle = "#00ff00"; ctx.beginPath(); ctx.arc(70 + (i*30)%450, 175, 6, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.fillStyle = G.phase === 'night' ? "#222210" : "#33331a"; ctx.fillRect(570, 120, 130, 80);
+        ctx.strokeRect(570, 120, 130, 80);
+        ctx.fillStyle = "#ffff88"; ctx.fillText("🔒 격리동", 580, 135);
+        for(let i=0; i<G.quarantine; i++) {
+            ctx.fillStyle = "#ffff00"; ctx.fillRect(585 + (i*22), 155, 12, 18);
+        }
+    }
+
+    // [1단계 배급 후 무조건 무작위 카드 등장!]
+    function distribute(mode) {
+        if(mode === 'equal') {
+            if(G.food < 10 || G.med < 5) { log("❌ 자원이 결여되어 배급 불가능!", 'warn'); return; }
+            G.food -= 10; G.med -= 5; G.poorAnger = Math.max(0, G.poorAnger - 15); G.eliteAnger = Math.max(0, G.eliteAnger - 5);
+            log("⚖️ 공평 배급 완료. 소요 사태가 진정됩니다.", 'succ');
+        } else if(mode === 'elite') {
+            if(G.food < 6 || G.med < 3) { log("❌ 자원이 결여되어 배급 불가능!", 'warn'); return; }
+            G.food -= 6; G.med -= 3; G.eliteAnger = Math.max(0, G.eliteAnger - 20); G.poorAnger += 25;
+            log("👑 특권 연구층 편향 배급 완료. 난민 계층이 웅성거립니다.", 'warn');
+        } else if(mode === 'starve') {
+            G.poorAnger += 40; G.eliteAnger += 20;
+            log("🛑 배급 유보 처리. 하층 구역에서 폭동 조짐이 고개를 듭니다!", 'warn');
+        }
+
+        document.getElementById('step1-zone').classList.add('hidden');
+        
+        // 고정 보스 이벤트(5, 10일차) 검사 후 없으면 100% 무작위 카드 드로우
+        if(checkMegaEvent()) return; 
+        
+        triggerFlash(); // 보라색 경고 플래시 발동
+        drawMorningCard();
+    }
+
+    // 100% 확률 무작위 돌발 카드 전개
+    function drawMorningCard() {
+        let randIndex = Math.floor(Math.random() * MORNING_CARDS.length);
+        let card = MORNING_CARDS[randIndex];
+        
+        document.getElementById('mega-title').innerText = card.title;
+        document.getElementById('mega-desc').innerText = card.desc;
+        document.getElementById('mega-options').innerHTML = card.opts;
+        document.getElementById('mega-event-zone').classList.remove('hidden');
+        updateUI();
+    }
+
+    // 무작위 돌발 카드 선택 결과 정산
+    function resolveCard(action) {
+        if(action === 'market_ok') {
+            if(G.med >= 5) { G.med -= 5; G.food += 18; log("🤝 밀거래 성립. 의약품을 내주고 대량의 식량을 강탈하듯 챙겼습니다.", "succ"); }
+            else { log("❌ 의약품이 모자라 브로커가 침을 뱉고 떠났습니다.", "warn"); }
+        }
+        if(action === 'market_no') { log("❌ 불법 밀거래 차단. 규정을 준수했으나 자원은 얻지 못했습니다."); }
+        
+        if(action === 'jail') { G.vaccine = Math.max(0, G.vaccine - 10); G.poorAnger += 15; log("🔒 연구원을 기지 독방에 가뒀습니다. 기지 연구 효율이 급락합니다.", "warn"); }
+        if(action === 'forgive') { G.med = Math.max(0, G.med - 4); G.eliteAnger += 20; log("🤫 눈감아주어 원료가 유실되었습니다. LEVEL 2 연구진이 분노합니다.", "warn"); }
+        
+        if(action === 'rats_med') { G.med = Math.max(0, G.med - 6); log("💊 보급고에 방역 소독약을 살포하여 식량을 안전하게 보존했습니다.", "succ"); }
+        if(action === 'rats_lose') { G.food = Math.max(0, G.food - 15); log("🍞 대응을 유보하여 변이 쥐들이 배급용 식량 15를 파먹었습니다.", "warn"); }
+        
+        if(action === 'protest_give') { 
+            if(G.food >= 8) { G.food -= 8; G.poorAnger = Math.max(0, G.poorAnger - 25); log("🍞 비상 창고의 식량을 배포해 주민들의 폭발 직전 민심을 진정시켰습니다.", "succ"); }
+            else { log("❌ 창고에 배포할 식량이 부족하여 시위대 해산에 실패했습니다!", "warn"); G.poorAnger += 15; }
+        }
+        if(action === 'protest_ignore') { G.poorAnger += 20; log("❌ 경비대를 투입해 무력 해산. 난민 구역의 긴장감이 폭발 직전입니다.", "warn"); }
+
+        if(action === 'power_vaccine') { G.vaccine += 15; G.poorAnger += 15; log("🧬 연구실 동력을 강제 유지하여 백신 개발 속도를 대폭 끌어올렸습니다!", "succ"); }
+        if(action === 'power_wall') { G.food = Math.max(0, G.food - 10); G.med = Math.max(0, G.med - 3); log("🛡️ 방벽 시스템을 지키기 위해 비상 발전기 연료와 정밀 부품을 소모했습니다.", "warn"); }
+
+        if(action === 'cult_kill') { G.eliteAnger += 10; G.poorAnger += 10; log("🔫 교주를 조용히 암살하여 선동을 막았으나 기지 내에 흉흉한 소문이 돕니다.", "warn"); }
+        if(action === 'cult_leave') { G.infected += 1; G.poorAnger += 25; log("🗣️ 방치된 선동으로 인해 난민들의 분노와 감염 통제력이 무너집니다!", "warn"); }
+
+        if(action === 'airdrop') { G.food += 15; G.med += 8; log("🎒 외곽 구역에서 완벽하게 군용 수송함 박스를 인양했습니다!", "succ"); }
+        
+        if(action === 'herb_med') { 
+            if(G.med >= 5) { G.med -= 5; log("💊 정품 치료제를 풀어 난민들의 패닉과 유언비어를 종식했습니다.", "succ"); }
+            else { G.infected += 2; log("❌ 의약품이 부족하여 소문을 막지 못했고 감염자가 폭증합니다!", "warn"); }
+        }
+        if(action === 'herb_ignore') { G.infected += 2; log("☣️ 오염된 풀을 달여 먹은 하층민들이 집단 변이를 일으키기 시작합니다!", "warn"); }
+
+        document.getElementById('mega-event-zone').classList.add('hidden');
+        setupQuarantine();
+    }
+
+    // [2단계: 검역 단계]
+    function setupQuarantine() {
+        document.getElementById('step2-zone').classList.remove('hidden');
+        G.queue = [];
+        let infectionChance = 0.35 + (G.day * 0.06);
+
+        for(let i=0; i<3; i++) {
+            let isCarrier = Math.random() < infectionChance;
+            let symptomChance = Math.max(0.10, 0.40 - (G.day * 0.05)); 
+            let showSymptom = isCarrier ? (Math.random() < symptomChance) : false;
+            G.queue.push({ id: i+1, isCarrier, showSymptom });
+        }
+        runNextImmigrant();
+    }
+
+    function runNextImmigrant() {
+        document.getElementById('rem-immigrants').innerText = G.queue.length;
+        
+        if(G.queue.length === 0) {
+            document.getElementById('step2-zone').classList.add('hidden');
+            setupExpedition(); 
+            return;
+        }
+
+        G.currentImmigrant = G.queue.shift();
+        let desc = G.currentImmigrant.showSymptom ? 
+            "<span class='warning'>⚠️ 증상 발현 (보균 의심)</span>" : "<span class='success'>✅ 신체 이상 없음</span>";
+
+        document.getElementById('immigrant-card').innerHTML = `
+            <strong>🔎 검역소 정밀 조사 (남은 대기자: ${G.queue.length + 1}명)</strong><br>
+            분석 결과: ${desc}<br><br>
+            <button onclick="applyQuarantine('accept')">📥 즉시 수용</button>
+            <button onclick="clearQuarantine('isolate')">🔒 격리소 행</button>
+            <button onclick="applyQuarantine('reject')">❌ 즉시 추방</button>
+        `;
+        updateUI();
+    }
+
+    function applyQuarantine(action) {
+        let p = G.currentImmigrant;
+        if(action === 'accept') {
+            G.poor++; if(p.isCarrier) { G.infected++; log("☣️ 무증상 보균자 유입! 기지 내부 감염자 수 증가.", 'warn'); }
+        } else if(action === 'reject') { 
+            G.poorAnger += 8; 
+        }
+        runNextImmigrant();
+    }
+
+    function clearQuarantine(action) {
+        let p = G.currentImmigrant;
+        if(G.quarantine >= 5) { 
+            G.poor++; 
+            if(p.isCarrier) { G.infected++; log("☣️ 격리 공간 포화로 일반 구역 강제 수용! 감염이 확산됩니다.", 'warn'); }
+        } else { 
+            G.quarantine++; 
+        }
+        runNextImmigrant();
+    }
+
+    function setupExpedition() {
+        document.getElementById('step3-zone').classList.remove('hidden');
+        updateUI();
+    }
+
+    // [3단계: 원정 단계]
+    function goExpedition() {
+        let f = Math.floor(Math.random()*12) + 10; 
+        let m = Math.floor(Math.random()*6) + 3;
+        G.food += f; G.med += m;
+        log(`🎒 외곽 수색 성공: 식량 +${f}, 의약품 +${m}`, 'succ');
+
+        if(Math.random() < (0.22 + G.day * 0.05)) { 
+            G.infected++; 
+            log("⚠️ 원정 대원 중 한 명이 기지 복귀 중 오염 물질에 노출되었습니다!", 'warn'); 
+        }
+        
+        document.getElementById('step3-zone').classList.add('hidden');
+        startNight();
+    }
+
+    function skipExpedition() {
+        log("🛡️ 원정을 취소하고 야간 장벽 수비대에 화력을 집중합니다.");
+        document.getElementById('step3-zone').classList.add('hidden');
+        startNight();
+    }
+
+    // [4단계: 야간 단계]
+    function startNight() {
+        G.phase = 'night';
+        document.getElementById('phase-title').innerText = "🌙 야간 위기 통제 단계 (등화관제 가동)";
+        document.getElementById('main-title').innerText = "🚨 LAST BARRICADE: BLACKOUT NIGHT";
+        document.getElementById('night-zone').classList.remove('hidden');
+
+        document.getElementById('main-window').classList.add('night-blackout');
+        document.getElementById('game-controls').classList.add('night-zone-bg');
+        document.getElementById('status-box-el').classList.add('night-status-bg');
+        document.body.style.backgroundColor = "#020202";
+
+        if(G.quarantine > 0) { G.quarantine = 0; } 
+
+        let text = ""; let buttons = "";
+        let medicineCost = G.infected * 4;
+        let defenseFoodCost = 8 + Math.floor(G.day * 2.2);
+
+        if(G.poorAnger >= 50) {
+            text = "🔥 [적색 비상: 폭동 발생] 소외된 하층 난민들이 무기를 들고 지휘소를 습격했습니다!";
+            buttons = `
+                <button onclick="resolveNight('suppress', 0, 0)">⚔️ 군대 투입 유혈 진압 (난민 대폭 감소)</button>
+                <button onclick="resolveNight('bribes', 18, 0)">🍞 비상식량 18 보급 협상 타결</button>
+            `;
+        } else if(G.infected > 0) {
+            text = `🧟 [적색 비상: 감염 폭주] 기지 내부 미격리 감염자 ${G.infected}명이 야간 돌변 변이를 일으켰습니다!`;
+            buttons = `
+                <button onclick="resolveNight('cure', 0, ${medicineCost})">💊 급히 치료제 대량 투약 (의약품 -${medicineCost})</button>
+                <button onclick="resolveNight('purge', 0, 0)">🔫 격리 안락사 후 즉시 소각</button>
+            `;
+        } else {
+            text = `🐺 [암흑 괴수 내습] 괴수 집단이 장벽을 들이받고 있습니다. (방어 유지에 식량 -${defenseFoodCost} 소모)`;
+            buttons = `<button onclick="resolveNight('defend', ${defenseFoodCost}, 0)">🛡️ 밤새 화력을 퍼부어 전선 사수</button>`;
+        }
+
+        document.getElementById('night-brief').innerHTML = text;
+        document.getElementById('night-choices').innerHTML = buttons;
+        updateUI();
+    }
+
+    function resolveNight(action, foodReq, medReq) {
+        if(G.food < foodReq) { 
+            G.poor = Math.max(0, G.poor - 4); 
+            log("💀 방어벽 화력 부족으로 장벽 일부가 무너져 난민들이 사망했습니다!", 'warn');
+        } else { 
+            G.food -= foodReq; 
+        }
+
+        if(G.med < medReq) { 
+            G.poor = Math.max(0, G.poor - 5); 
+            G.infected = Math.max(0, G.infected - 1); 
+            log("💀 의약품 부족으로 야간 변이 통제에 실패하여 하층 구역이 처참하게 찢겼습니다.", 'warn');
+        } else { 
+            G.med -= medReq; 
+        }
+
+        if(action === 'suppress') { 
+            G.poor = Math.max(0, G.poor - 8); 
+            G.poorAnger = Math.max(0, G.poorAnger - 40); 
+            log("⚔️ 철저하게 무력 진압했습니다. 난민 구역은 조용해졌으나 시체가 즐비합니다.", 'warn');
+        }
+        if(action === 'bribes' && G.food >= foodReq) { 
+            G.poorAnger = Math.max(0, G.poorAnger - 35); 
+            log("🤝 식량을 건네받은 주민들이 해산했습니다.", 'succ');
+        }
+        if(action === 'cure' && G.med >= medReq) { 
+            G.infected = 0; 
+            log("💊 억제제를 기습 처방하여 내부 확산을 가까스로 잠재웠습니다.", 'succ');
+        }
+        if(action === 'purge') { 
+            G.poor = Math.max(0, G.poor - G.infected); 
+            G.poorAnger += 35; 
+            G.infected = 0; 
+            log("🔫 어둠 속에서 총성이 울립니다. 감염체들이 즉각 숙청되었습니다.", 'warn');
+        }
+        if(action === 'defend' && G.food >= foodReq) { 
+            G.vaccine += Math.floor(Math.random() * 8) + 6; 
+            log("🛡️ 방어 성공! 확보한 시간 덕분에 백신 연구가 진척되었습니다.", 'succ');
+        }
+
+        triggerFlash();
+        G.day += 1;
+        G.phase = 'day';
+
+        document.getElementById('main-window').classList.remove('night-blackout');
+        document.getElementById('game-controls').classList.remove('night-zone-bg');
+        document.getElementById('status-box-el').classList.remove('night-status-bg');
+        document.body.style.backgroundColor = "#121212";
+        
+        document.getElementById('phase-title').innerText = "☀️ 낮 경영 단계";
+        document.getElementById('main-title').innerText = "🛡️ LAST BARRICADE: 10 DAYS CARDS";
+
+        document.getElementById('night-zone').classList.add('hidden');
+        document.getElementById('step1-zone').classList.remove('hidden');
+
+        if(G.poorAnger >= 40) { G.infected += 1; }
+
+        log(`--- 🌅 제 ${G.day}일차 아침이 밝아왔습니다. 배급을 결정하십시오. ---`, 'info');
+        updateUI();
+    }
+
+    // 5일차 / 10일차 강제 대위기 이벤트
+    function checkMegaEvent() {
+        let active = false; let title = ""; let desc = ""; let opts = "";
+
+        if(G.day === 5) {
+            active = true; title = "🚨 [5일차 임계 고정 위기] 영하 40도 혹한의 설야";
+            desc = "중앙 발전 코어가 얼어붙고 있습니다. 연구원들의 열기 차단 장막을 해제하여 난민들과 따뜻함을 나누겠습니까?";
+            opts = `
+                <button onclick="endMega('freeze_share')">⚖️ 온기 공유 (통합 구휼 식량 -20 강제 탈취)</button>
+                <button onclick="endMega('freeze_save')">👑 특권층 격리 보존 (난민 7명 동사, 불만 급등)</button>
+            `;
+        } else if(G.day === 10) {
+            active = true; title = "🚨 [10일차 최종 위기] 변이 군단의 장벽 총공습";
+            desc = "마지막 밤입니다. 축적된 모든 바이러스 가스가 기지 내부로 역류합니다!";
+            opts = `
+                <button onclick="endMega('virus_block')">💊 고온 증기 방역 처리 (의약품 -12 소모)</button>
+                <button onclick="endMega('virus_gamble')">🎲 차벽 강화 후 도박 (위험성 폭증)</button>
+            `;
+        }
+
+        if(active) {
+            document.getElementById('mega-title').innerText = title;
+            document.getElementById('mega-desc').innerText = desc;
+            document.getElementById('mega-options').innerHTML = opts;
+            document.getElementById('mega-event-zone').classList.remove('hidden');
+            return true;
+        }
+        return false;
+    }
+
+    function endMega(action) {
+        if(action === 'freeze_share') { G.food = Math.max(0, G.food - 20); }
+        if(action === 'freeze_save') { G.poor = Math.max(0, G.poor - 7); G.poorAnger += 35; }
+        if(action === 'virus_block') { G.med = Math.max(0, G.med - 12); }
+        if(action === 'virus_gamble') { G.infected += 5; }
+
+        document.getElementById('mega-event-zone').classList.add('hidden');
+        setupQuarantine();
+    }
+
+    function checkGameOver() {
+        if(G.vaccine >= 100) { 
+            alert(`🎉 [백신 완벽 개발 승리] 인류의 구원자가 되셨습니다! 기지가 영구 보존됩니다.`); 
+            location.reload(); 
+        }
+        if(G.day >= 11) {
+            alert(`🏆 [10일 생존 최종 승리] 마의 10일을 버텨내고 구조대와 합류했습니다. 작전 성공!`);
+            location.reload();
+        }
+        if(G.poor <= 0 && G.elite <= 0) { 
+            alert(`💀 [전멸 패배] 기지 내부의 모든 생존자가 사망했습니다.`); 
+            location.reload(); 
+        }
+        if(G.poorAnger >= 100) { 
+            alert(`🔥 [기지 전복 패배] 폭동 수치가 100%에 도달해 사령부가 불타버렸습니다.`); 
+            location.reload(); 
+        }
+    }
+
+    window.onload = initGame;
+</script>
+</body>
+</html>

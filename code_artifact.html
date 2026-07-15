@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인생 시뮬레이터: 혐오의 대가</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #1a1a2e;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        .game-container {
+            border: 4px solid #4a5568;
+            box-shadow: 8px 8px 0px #0f3460;
+            background-color: #16213e;
+        }
+
+        .stat-bar-container {
+            border: 2px solid #2d3748;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stat-bar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%;
+        }
+
+        .btn-retro {
+            border: 2px solid #4a5568;
+            box-shadow: 4px 4px 0px #0f0f1a;
+            transition: all 0.1s;
+        }
+        
+        .btn-retro:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px #0f0f1a;
+        }
+
+        .btn-hate { background-color: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+        .btn-normal { background-color: #1e3a8a; color: #bfdbfe; border-color: #1e40af; }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake-effect {
+            animation: shake 0.5s;
+            animation-iteration-count: 1;
+        }
+
+        @keyframes float-up {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+
+        .floating-text {
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: float-up 1s ease-out forwards;
+            z-index: 50;
+        }
+
+        .red-flash {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        
+        .flash-active { opacity: 1; }
+
+        #timeline-character {
+            transition: left 0.5s ease-in-out;
+            transform: translateX(-50%) scaleX(-1);
+        }
+
+        #character {
+            transform: scaleX(-1);
+        }
+
+        @keyframes walk {
+            0% { transform: translateY(0) rotate(0deg) scaleX(-1); }
+            25% { transform: translateY(-6px) rotate(5deg) scaleX(-1); }
+            50% { transform: translateY(0) rotate(0deg) scaleX(-1); }
+            75% { transform: translateY(-6px) rotate(-5deg) scaleX(-1); }
+            100% { transform: translateY(0) rotate(0deg) scaleX(-1); }
+        }
+        .walking { animation: walk 0.4s infinite linear; }
+        
+        @keyframes scrollBg {
+            from { background-position: 0 0; }
+            to { background-position: -100px 0; }
+        }
+        .bg-scrolling { animation: scrollBg 1s infinite linear; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Red flash effect for bad choices -->
+    <div id="damage-flash" class="red-flash"></div>
+
+    <div id="game-app" class="game-container w-full max-w-md mx-auto p-4 rounded-xl min-h-[600px] flex flex-col relative">
+        
+        <!-- Header & Timeline -->
+        <header class="text-center mb-4">
+            <h1 class="text-2xl font-black tracking-wider text-yellow-400 mb-2">LIFE is a GAME</h1>
+            <p class="text-sm text-gray-400">글로벌 미디어 혐오표현 예방 시뮬레이터</p>
+            
+            <div class="mt-4 relative w-full h-8 bg-gray-800 rounded-full border-2 border-gray-600">
+                <div class="absolute top-0 left-0 w-full h-full flex justify-between px-2 items-center text-xs text-gray-500">
+                    <span>15세</span><span>50세</span><span>100세</span>
+                </div>
+                <div id="timeline-character" class="absolute top-0 left-[0%] h-full flex items-center text-xl z-10">
+                    🏃
+                </div>
+            </div>
+            <p id="age-display" class="text-lg font-bold text-white mt-1">현재 나이: 15세</p>
+        </header>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-2 mb-6 p-3 bg-gray-800 rounded-lg relative" id="stats-box">
+            <!-- 평판 -->
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1 text-blue-300">
+                    <span>평판</span>
+                    <span id="rep-val">100</span>
+                </div>
+                <div class="stat-bar-container h-4 w-full">
+                    <div id="rep-bar" class="stat-bar bg-blue-500" style="width: 100%"></div>
+                </div>
+            </div>
+            <!-- 재산 -->
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1 text-green-300">
+                    <span>재산</span>
+                    <span id="money-val">100</span>
+                </div>
+                <div class="stat-bar-container h-4 w-full">
+                    <div id="money-bar" class="stat-bar bg-green-500" style="width: 100%"></div>
+                </div>
+            </div>
+            <!-- 멘탈 -->
+            <div>
+                <div class="flex justify-between text-xs font-bold mb-1 text-pink-300">
+                    <span>멘탈</span>
+                    <span id="mental-val">100</span>
+                </div>
+                <div class="stat-bar-container h-4 w-full">
+                    <div id="mental-bar" class="stat-bar bg-pink-500" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Stage Area -->
+        <div id="game-stage-container" class="mb-4 relative w-full">
+            <div id="game-stage" class="relative w-full h-40 bg-gray-900 border-2 border-gray-700 rounded-lg overflow-hidden">
+                <div id="scrolling-bg" class="absolute inset-0 opacity-20" style="background: repeating-linear-gradient(90deg, transparent, transparent 50px, #4a5568 50px, #4a5568 52px); background-size: 100px 100%;"></div>
+                <div class="absolute bottom-0 w-full h-6 bg-gray-800 border-t-2 border-gray-600"></div>
+                
+                <div id="character" class="absolute bottom-6 left-8 text-5xl origin-bottom transition-all duration-300 z-20 drop-shadow-lg">🏃</div>
+                <div id="event-marker" class="absolute bottom-6 right-8 text-4xl transition-transform duration-500 transform translate-x-[300%] z-10 drop-shadow-lg">❗</div>
+                
+                <div id="speech-bubble" class="absolute top-2 left-1/2 transform -translate-x-1/2 bg-gray-200 text-gray-900 px-3 py-1.5 rounded-lg font-bold text-xs hidden border-2 border-gray-400 z-30 w-4/5 text-center shadow-lg truncate">
+                    이벤트
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Box -->
+        <div id="event-box" class="flex-grow flex flex-col justify-between">
+            <div class="bg-gray-900 p-4 rounded-lg border-2 border-gray-700 min-h-[150px] mb-4">
+                <div id="event-title" class="text-xl font-bold text-yellow-300 mb-2">튜토리얼</div>
+                <div id="scenario-text" class="text-md text-gray-300 leading-relaxed break-keep">
+                    현대 사회, 우리는 다양한 미디어를 통해 전 세계와 연결됩니다. 인터넷에서 무심코 배운 글로벌 혐오표현을 따라 할 것인지, 세계 시민으로서 타 문화를 존중할 것인지 선택하세요. 무심코 던진 말에는 반드시 대가가 따릅니다.
+                </div>
+            </div>
+
+            <div id="choices-container" class="space-y-3 flex-grow flex flex-col justify-end pb-4">
+                <button onclick="startGame()" class="w-full btn-retro bg-yellow-600 text-yellow-100 border-yellow-800 py-4 rounded-lg font-bold text-lg">
+                    인생 시작하기
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="hidden flex-grow flex-col items-center justify-center text-center p-4">
+            <h2 id="game-over-title" class="text-4xl font-black text-red-500 mb-4 animate-pulse">GAME OVER</h2>
+            <div id="game-over-box" class="bg-gray-900 p-4 rounded-lg border-2 border-red-900 w-full mb-6">
+                <h3 id="ending-title" class="text-xl font-bold text-white mb-2"></h3>
+                <p id="death-reason" class="text-gray-400 text-sm break-keep"></p>
+            </div>
+            <button onclick="location.reload()" class="btn-retro bg-gray-700 text-white px-8 py-3 rounded-lg font-bold w-full">
+                다시 태어나기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            age: 15,
+            reputation: 100, // 사회적 지위, 인관관계
+            money: 100,       // 재산 (초기 자금 증가)
+            mental: 100,     // 정신건강, 스트레스 (도파민)
+            stage: 0,
+            hateCount: 0,    // 혐오표현 사용 횟수 기록
+            isGameOver: false
+        };
+
+        // 단계별 극단적 시나리오 (글로벌 미디어 혐오 교육 주제)
+        const storyStages = [
+            {
+                age: 15,
+                title: "글로벌 게임 서버",
+                desc: "해외 유저들과 게임을 하던 중 팀원과 시비가 붙었습니다. 평소 자주 보던 인터넷 방송의 유튜버가 쓰던 말이 떠오릅니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"너네 나라로 돌아가라!\" 며 방송에서 배운 인종차별적 욕설(칭챙총 등)을 채팅창에 도배한다.", 
+                        type: "hate",
+                        rep: -10, money: 0, mental: +15,
+                        feedback: "당장 속은 후련했지만, 글로벌 서버에서 계정이 영구 정지당하고 친구들에게 밴 당한 사실을 들켜 조롱받습니다."
+                    },
+                    { 
+                        text: "🛡️ 채팅을 차단하고 핑(Ping)으로만 소통하며 게임 플레이에 집중한다.", 
+                        type: "normal",
+                        rep: +10, money: 0, mental: -5,
+                        feedback: "화는 났지만 흔들리지 않는 멘탈로 역전승을 거두며 외국인 친구와 친해졌습니다."
+                    }
+                ]
+            },
+            {
+                age: 20,
+                title: "숏폼과 SNS 알고리즘",
+                desc: "유튜브 쇼츠를 넘기다 보니 특정 국가의 전통문화를 조롱하는 자극적인 영상이 떴습니다.",
+                choices: [
+                    { 
+                        text: "🔥 커뮤니티에서 유행하는 비하 드립과 밈을 복붙하여 '좋아요'를 받기 위해 베스트 댓글을 노린다.", 
+                        type: "hate",
+                        rep: -15, money: 0, mental: +15,
+                        feedback: "수많은 '좋아요'로 우월감(도파민)을 느꼈지만, 훗날 이 디지털 기록 때문에 교환학생 면접에서 치명적인 불이익을 받습니다."
+                    },
+                    { 
+                        text: "🛡️ \"문화적 차이를 조롱하는 건 옳지 않아\"라고 생각하며 '관심 없음'을 누르고 알고리즘을 정화한다.", 
+                        type: "normal",
+                        rep: +15, money: 0, mental: +5,
+                        feedback: "올바른 미디어 리터러시 능력을 기르며 시간을 더 가치 있는 곳에 씁니다."
+                    }
+                ]
+            },
+            {
+                age: 28,
+                title: "다국적 기업 / 워홀",
+                desc: "외국계 회사에서 일하게 되었습니다. 동남아시아 출신 동료가 한국 문화에 익숙하지 않아 작은 업무 실수를 했습니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"인터넷에서 본 대로 미개한 나라 출신이라 일도 못하네\"라며 혐오 발언을 면전에서 내뱉는다.", 
+                        type: "hate",
+                        rep: -25, money: -20, mental: +10,
+                        feedback: "사내 글로벌 HR 부서에 인종차별로 즉각 신고되어 감봉 처분을 받고 승진에서 누락되었습니다."
+                    },
+                    { 
+                        text: "🛡️ 실수를 차분히 짚어주고, 서로의 문화적 소통 방식 차이를 인정하며 업무를 맞춰간다.", 
+                        type: "normal",
+                        rep: +25, money: +20, mental: -5,
+                        feedback: "글로벌 리더십을 인정받아 해외 본사로 발령받고 연봉이 크게 올랐습니다."
+                    }
+                ]
+            },
+            {
+                age: 35,
+                title: "해외여행 브이로그",
+                desc: "유럽 여행 중 브이로그를 찍고 있습니다. 식당 점원이 영어를 잘 못 알아듣고 서비스가 느립니다.",
+                choices: [
+                    { 
+                        text: "🔥 카메라를 켜고 점원의 억양을 우스꽝스럽게 흉내 내며 한국어로 험담하는 영상을 찍어 올린다.", 
+                        type: "hate",
+                        rep: -30, money: -25, mental: +10,
+                        feedback: "영상이 현지 언어로 번역되어 국제적 망신을 당하고, 한국 네티즌들에게도 신상이 털려 직장을 잃을 위기에 처합니다."
+                    },
+                    { 
+                        text: "🛡️ 번역기 앱을 활용하여 친절하게 소통하고, 현지의 여유로운 분위기를 영상에 아름답게 담는다.", 
+                        type: "normal",
+                        rep: +20, money: +15, mental: +10,
+                        feedback: "존중하는 태도가 담긴 브이로그가 화제가 되어 외국인 구독자가 크게 늘고 부수입이 생겼습니다."
+                    }
+                ]
+            },
+            {
+                age: 50,
+                title: "가짜 뉴스와 자녀 교육",
+                desc: "자녀와 함께 뉴스를 보는데, 이주민과 외국인 노동자에 관한 자극적이고 왜곡된 가짜 뉴스가 나옵니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"저런 것들은 다 잠재적 범죄자야!\"라며 미디어의 혐오 프레임을 그대로 자녀에게 주입한다.", 
+                        type: "hate",
+                        rep: -20, money: -30, mental: +5,
+                        feedback: "당신에게 혐오를 배운 자녀가 학교에서 다문화 가정 친구를 왕따시켜 학폭위에 불려 가 막대한 합의금을 물어줍니다."
+                    },
+                    { 
+                        text: "🛡️ \"미디어의 자극적인 보도일 수 있어. 사실 확인이 중요해\"라며 미디어 리터러시와 인권의 중요성을 가르친다.", 
+                        type: "normal",
+                        rep: +20, money: +10, mental: -5,
+                        feedback: "자녀가 포용력을 갖춘 훌륭한 글로벌 인재로 성장하여 가문의 자랑이 됩니다."
+                    }
+                ]
+            },
+            {
+                age: 70,
+                title: "다문화 사회가 된 동네",
+                desc: "동네가 다문화 지역으로 변했습니다. 외국인 이웃이 이사 떡 대신 자신들의 전통 음식을 가져왔습니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"유튜브에서 보니 너희들 음식은 다 불결하더라!\"라며 문전박대하고 소금을 뿌린다.", 
+                        type: "hate",
+                        rep: -25, money: -10, mental: +5,
+                        feedback: "동네 커뮤니티에서 인종차별주의자 노인으로 찍혀 기피 대상이 되고, 고립된 삶을 살게 됩니다."
+                    },
+                    { 
+                        text: "🛡️ 웃으며 받아들이고 며칠 뒤 한국의 전통 과자를 이웃에게 답례로 선물한다.", 
+                        type: "normal",
+                        rep: +20, money: 0, mental: +20,
+                        feedback: "서로 다른 문화를 교류하며 동네에서 가장 존경받는 다정한 이웃집 어르신이 됩니다."
+                    }
+                ]
+            },
+            {
+                age: 85,
+                title: "요양원과 돌봄",
+                desc: "요양원에서 생활 중입니다. 자신을 돌봐주는 외국인 요양보호사가 한국어 발음이 조금 서툴러 약을 늦게 가져왔습니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"말도 못 알아먹는 미개한 것들!\"이라며 과거 넷상에서 쓰던 비하 단어를 섞어 소리치고 물건을 던진다.", 
+                        type: "hate",
+                        rep: -20, money: 0, mental: +5,
+                        feedback: "병원 내 블랙리스트에 올라 요양보호사들이 모두 기피하게 되며, 최소한의 돌봄만 받으며 방치됩니다."
+                    },
+                    { 
+                        text: "🛡️ \"먼 타국에서 노인네 돌보느라 고생이 많아\"라며 천천히 또박또박 말하여 소통을 돕는다.", 
+                        type: "normal",
+                        rep: +15, money: 0, mental: +10,
+                        feedback: "요양보호사들이 친할아버지/할머니처럼 따르며 극진하고 따뜻한 보살핌을 받습니다."
+                    }
+                ]
+            },
+            {
+                age: 100,
+                title: "임종 직전",
+                desc: "병상에 누워 스마트폰으로 전 세계 사람들이 인종과 국적으로 서로 헐뜯는 글로벌 분쟁 기사를 봅니다.",
+                choices: [
+                    { 
+                        text: "🔥 \"결국 피부색 다르면 싹 다 죽여야 해...\" 마지막 순간까지 미디어의 혐오 프레임에 갇혀 세상을 저주한다.", 
+                        type: "hate",
+                        rep: -20, money: 0, mental: -30,
+                        feedback: "당신의 마지막 유언은 낡은 혐오주의자의 부질없는 저주로 남았습니다."
+                    },
+                    { 
+                        text: "🛡️ \"서로의 다름을 이해하고 존중해야 평화가 오는 것을...\" 다음 세대의 화합을 기도하며 평온하게 눈을 감는다.", 
+                        type: "normal",
+                        rep: +20, money: 0, mental: +30,
+                        feedback: "세계의 다양성을 이해하고 포용한 성숙한 시민으로서 평안한 마무리를 맞이합니다."
+                    }
+                ]
+            }
+        ];
+
+        function createFloatingText(text, color, elementId) {
+            const el = document.getElementById(elementId);
+            const rect = el.getBoundingClientRect();
+            
+            const floating = document.createElement('div');
+            floating.className = 'floating-text';
+            floating.style.color = color;
+            floating.innerText = text;
+            
+            // Randomize position slightly around the stat
+            const x = rect.left + (Math.random() * 20 - 10);
+            const y = rect.top - 10;
+            
+            floating.style.left = `${x}px`;
+            floating.style.top = `${y}px`;
+            
+            document.body.appendChild(floating);
+            setTimeout(() => floating.remove(), 1000);
+        }
+
+        function updateUI(deltas = null) {
+            document.getElementById('age-display').innerText = `현재 나이: ${state.age}세`;
+            
+            // Timeline progress (15세부터 100세까지 85년의 여정)
+            const progress = Math.min(100, ((state.age - 15) / 85) * 100);
+            document.getElementById('timeline-character').style.left = `${progress}%`;
+
+            // Enforce limits
+            state.reputation = Math.min(100, Math.max(0, state.reputation));
+            state.money = Math.min(100, Math.max(0, state.money));
+            state.mental = Math.min(100, Math.max(0, state.mental));
+
+            // Update text
+            document.getElementById('rep-val').innerText = state.reputation;
+            document.getElementById('money-val').innerText = state.money;
+            document.getElementById('mental-val').innerText = state.mental;
+
+            // Update bars with color warnings
+            const repBar = document.getElementById('rep-bar');
+            repBar.style.width = `${state.reputation}%`;
+            repBar.className = `stat-bar ${state.reputation < 30 ? 'bg-red-500' : 'bg-blue-500'}`;
+
+            const moneyBar = document.getElementById('money-bar');
+            moneyBar.style.width = `${state.money}%`;
+            moneyBar.className = `stat-bar ${state.money < 30 ? 'bg-red-500' : 'bg-green-500'}`;
+
+            const mentalBar = document.getElementById('mental-bar');
+            mentalBar.style.width = `${state.mental}%`;
+            mentalBar.className = `stat-bar ${state.mental < 30 ? 'bg-red-500' : 'bg-pink-500'}`;
+
+            // Floating numbers feedback
+            if (deltas) {
+                if(deltas.rep !== 0) createFloatingText(deltas.rep > 0 ? `+${deltas.rep}` : deltas.rep, deltas.rep > 0 ? '#60a5fa' : '#f87171', 'rep-val');
+                if(deltas.money !== 0) createFloatingText(deltas.money > 0 ? `+${deltas.money}` : deltas.money, deltas.money > 0 ? '#4ade80' : '#f87171', 'money-val');
+                if(deltas.mental !== 0) createFloatingText(deltas.mental > 0 ? `+${deltas.mental}` : deltas.mental, deltas.mental > 0 ? '#f472b6' : '#f87171', 'mental-val');
+            }
+
+            checkGameOver();
+        }
+
+        function checkGameOver() {
+            if (state.isGameOver) return;
+
+            let isDead = false;
+            let title = "";
+            let reason = "";
+            let isGoodEnding = false;
+
+            if (state.reputation <= 0) {
+                isDead = true;
+                title = "글로벌 매장 엔딩";
+                reason = "미디어에서 배워 온·오프라인에 남긴 수많은 인종차별 및 혐오 발언이 전 세계 커뮤니티에 번역되어 박제되었습니다. 모든 취업길이 막히고 사회적으로 완전히 고립되었습니다.";
+            } else if (state.money <= 0) {
+                isDead = true;
+                title = "국제 소송 및 파산 엔딩";
+                reason = "글로벌 플랫폼에서 특정 국가와 인종을 모욕한 혐의로 해외 및 국내에서 고발당해 막대한 합의금과 소송 비용을 물어주고 파산했습니다.";
+            } else if (state.mental <= 0) {
+                isDead = true;
+                title = "확증편향 붕괴 엔딩";
+                reason = "미디어의 자극적인 혐오 콘텐츠에만 빠져 살다 보니, 세상 모든 사람을 적대시하게 되어 피해망상에 갇힌 채 정신적으로 무너져 내렸습니다.";
+            } else if (state.stage >= storyStages.length) {
+                isDead = true;
+                if (state.hateCount >= 3) {
+                    title = "디지털 꼬리표 엔딩 (비참한 최후)";
+                    reason = `평생 동안 미디어에서 무분별하게 배운 혐오표현을 ${state.hateCount}번이나 현실과 넷상에서 내뱉은 대가입니다.\n\n[최종 스탯] 평판: ${state.reputation} | 재산: ${state.money} | 멘탈: ${state.mental}\n\n과거에 남긴 혐오의 흔적들이 결국 발목을 잡아, 글로벌 시대에 누구에게도 환영받지 못하는 가장 외로운 최후를 맞이했습니다.`;
+                } else if (state.hateCount > 0) {
+                    title = "우물 안 개구리 엔딩";
+                    reason = `인터넷 밈인 줄 알고 무심코 글로벌 혐오표현을 ${state.hateCount}번 사용했습니다.\n\n[최종 스탯] 평판: ${state.reputation} | 재산: ${state.money} | 멘탈: ${state.mental}\n\n큰 처벌은 피했지만, 디지털 기록과 편협한 시각 때문에 중요한 해외 발령이나 승진에서 누락되며 씁쓸하고 좁은 세계에 갇힌 노후를 보냅니다.`;
+                } else {
+                    isGoodEnding = true;
+                    title = "존경받는 세계 시민 (진엔딩)";
+                    reason = `자극적인 미디어의 유혹 속에서도 단 한 번도 타 문화와 인종을 혐오하지 않았습니다!\n\n[최종 스탯] 평판: ${state.reputation} | 재산: ${state.money} | 멘탈: ${state.mental}\n\n편견 없는 열린 마음과 미디어 리터러시 능력을 갖춘 당신은 전 세계 다양한 사람들과 교류하며, 풍요롭고 존경받는 평안한 여생을 보냅니다.`;
+                }
+            }
+
+            if (isDead) {
+                state.isGameOver = true;
+                document.getElementById('event-box').classList.add('hidden');
+                document.getElementById('stats-box').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.remove('hidden');
+                document.getElementById('game-over-screen').classList.add('flex');
+                
+                const goTitle = document.getElementById('game-over-title');
+                const goBox = document.getElementById('game-over-box');
+
+                if (isGoodEnding) {
+                    goTitle.innerText = "LIFE COMPLETE";
+                    goTitle.classList.remove('text-red-500');
+                    goTitle.classList.add('text-blue-400');
+                    goBox.classList.remove('border-red-900');
+                    goBox.classList.add('border-blue-600');
+                } else {
+                    goTitle.innerText = "GAME OVER";
+                    goTitle.classList.remove('text-blue-400');
+                    goTitle.classList.add('text-red-500');
+                    goBox.classList.remove('border-blue-600');
+                    goBox.classList.add('border-red-900');
+                }
+
+                document.getElementById('ending-title').innerText = title;
+                document.getElementById('death-reason').innerText = reason;
+            }
+        }
+
+        function startGame() {
+            state.stage = 0;
+            state.age = storyStages[0].age;
+            state.reputation = 100;
+            state.money = 100;
+            state.mental = 100;
+            state.hateCount = 0;
+            updateUI();
+            showNextEvent();
+        }
+
+        function triggerDamageEffect() {
+            const app = document.getElementById('game-app');
+            const flash = document.getElementById('damage-flash');
+            
+            app.classList.remove('shake-effect');
+            void app.offsetWidth; // trigger reflow
+            app.classList.add('shake-effect');
+
+            flash.classList.add('flash-active');
+            setTimeout(() => {
+                flash.classList.remove('flash-active');
+            }, 150);
+        }
+
+        function getCharacterEmoji(age) {
+            if (age < 20) return '🏃';      // 15세 (달리는 청소년)
+            if (age < 50) return '🏃‍♂️';     // 20, 28, 35세 (달리는 청년/어른)
+            if (age < 70) return '🚶‍♂️';     // 50세 (걷는 중년)
+            if (age < 85) return '👨‍🦯';     // 70세 (지팡이 짚은 노년)
+            return '🧑‍🦽';                   // 85, 100세 (휠체어 탄 노년)
+        }
+
+        function animateToNextEvent(eventData, callback) {
+            const char = document.getElementById('character');
+            const bg = document.getElementById('scrolling-bg');
+            const marker = document.getElementById('event-marker');
+            const speech = document.getElementById('speech-bubble');
+            const eventTitle = document.getElementById('event-title');
+            const eventDesc = document.getElementById('scenario-text');
+            const choicesContainer = document.getElementById('choices-container');
+
+            // Set UI to moving state
+            speech.classList.add('hidden');
+            marker.style.transform = 'translateX(300%)';
+            eventTitle.innerText = `[${eventData.age}세로 성장 중...]`;
+            eventDesc.innerText = "시간이 흐르며 당신은 멈추지 않고 달려가고 있습니다...";
+            choicesContainer.innerHTML = '';
+
+            // Update character visual based on age
+            char.innerText = getCharacterEmoji(eventData.age);
+
+            // Start animations
+            char.classList.add('walking');
+            bg.classList.add('bg-scrolling');
+            
+            // Determine obstacle marker based on age to give variety
+            if (eventData.age === 15) marker.innerText = '🎮';
+            else if (eventData.age === 20) marker.innerText = '📱';
+            else if (eventData.age === 28) marker.innerText = '💼';
+            else if (eventData.age === 35) marker.innerText = '📰';
+            else if (eventData.age === 50) marker.innerText = '🙇‍♂️';
+            else if (eventData.age === 70) marker.innerText = '👥';
+            else if (eventData.age === 85) marker.innerText = '🏥';
+            else marker.innerText = '🛏️'; // 100세 병상 마커
+            
+            setTimeout(() => {
+                // Stop running
+                char.classList.remove('walking');
+                bg.classList.remove('bg-scrolling');
+                
+                // Obstacle approaches
+                marker.style.transform = 'translateX(0)';
+                
+                setTimeout(() => {
+                    callback();
+                }, 400);
+                
+            }, 1800); // Running duration
+        }
+
+        function showNextEvent() {
+            if (state.stage >= storyStages.length) {
+                updateUI();
+                return;
+            }
+
+            const event = storyStages[state.stage];
+            state.age = event.age;
+            updateUI(); // timeline update
+
+            animateToNextEvent(event, () => {
+                const titleEl = document.getElementById('event-title');
+                const textEl = document.getElementById('scenario-text');
+                const speech = document.getElementById('speech-bubble');
+                
+                titleEl.innerText = `[${event.age}세] ${event.title}`;
+                textEl.innerHTML = event.desc;
+                
+                speech.innerText = event.title + " 발생!";
+                speech.classList.remove('hidden');
+
+                const container = document.getElementById('choices-container');
+                container.innerHTML = '';
+                
+                event.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    if (choice.type === 'hate') {
+                        btn.className = "w-full btn-retro btn-hate py-4 px-4 rounded-lg font-bold text-left text-sm leading-tight";
+                    } else {
+                        btn.className = "w-full btn-retro btn-normal py-4 px-4 rounded-lg font-bold text-left text-sm leading-tight";
+                    }
+                    btn.innerText = choice.text;
+                    btn.onclick = () => applyChoice(choice);
+                    container.appendChild(btn);
+                });
+            });
+        }
+
+        function applyChoice(choice) {
+            if (choice.type === 'hate') {
+                state.hateCount++;
+            }
+
+            // Apply stats
+            const deltas = { rep: choice.rep, money: choice.money, mental: choice.mental };
+            state.reputation += choice.rep;
+            state.money += choice.money;
+            state.mental += choice.mental;
+            
+            // Visual feedback for extreme hate choice
+            if (choice.type === 'hate') {
+                triggerDamageEffect();
+            }
+
+            updateUI(deltas);
+            
+            if(!state.isGameOver) {
+                const container = document.getElementById('choices-container');
+                const speech = document.getElementById('speech-bubble');
+                
+                speech.innerText = choice.type === 'hate' ? "🤬" : "😊";
+                
+                container.innerHTML = `
+                    <div class="bg-gray-800 p-4 rounded-lg border border-gray-600 text-gray-300 text-sm animate-pulse mb-4">
+                        ${choice.feedback}
+                    </div>
+                    <button id="next-btn" class="w-full btn-retro bg-gray-600 text-white py-3 rounded-lg font-bold">다음으로 진행</button>
+                `;
+                document.getElementById('next-btn').onclick = () => {
+                    speech.classList.add('hidden');
+                    const marker = document.getElementById('event-marker');
+                    marker.style.transform = 'translateX(-300%)'; // marker leaves screen to the left
+                    
+                    setTimeout(() => {
+                        state.stage++;
+                        showNextEvent();
+                    }, 300); // small delay before running again
+                };
+            }
+        }
+
+        // Initialize Timeline UI visually but wait for Start
+        updateUI();
+
+    </script>
+</body>
+</html>

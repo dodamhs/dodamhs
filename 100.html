@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아쿠아 시스템: 100리터 챌린지 (AQUA SYSTEM: 100L)</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Orbitron (세련된 테크 대시보드 폰트) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome 아이콘 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        digital: ['Orbitron', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 수조 물 파도 애니메이션 효과 */
+        @keyframes wave-movement {
+            0% { transform: translate(-50%, 0) rotate(0deg); }
+            50% { transform: translate(-50%, -1.5%) rotate(180deg); }
+            100% { transform: translate(-50%, 0) rotate(360deg); }
+        }
+        
+        .water-wave {
+            position: absolute;
+            width: 220%;
+            height: 220%;
+            background: linear-gradient(180deg, rgba(14, 165, 233, 0.9) 0%, rgba(2, 132, 199, 0.95) 100%);
+            border-radius: 38%;
+            bottom: 0;
+            left: 50%;
+            transform-origin: 50% 49%;
+            animation: wave-movement 8s infinite linear;
+            transition: bottom 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.6);
+        }
+
+        .water-wave-back {
+            position: absolute;
+            width: 225%;
+            height: 225%;
+            background: linear-gradient(180deg, rgba(29, 78, 216, 0.6) 0%, rgba(30, 58, 138, 0.7) 100%);
+            border-radius: 40%;
+            bottom: 0%;
+            left: 50%;
+            transform-origin: 50% 48%;
+            animation: wave-movement 12s infinite linear;
+            transition: bottom 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 터미널 스캔라인 효과 */
+        .terminal-scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+        }
+
+        /* 진동 효과 (최대 소비 경고 연출) */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-3px, 0); }
+            20%, 40%, 60%, 80% { transform: translate(3px, 0); }
+        }
+        .shake-active {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 가스 기포 입자 */
+        @keyframes float-bubble {
+            0% { transform: translateY(100%) translateX(0); opacity: 0; }
+            50% { opacity: 0.7; }
+            100% { transform: translateY(-100px) translateX(10px); opacity: 0; }
+        }
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-bubble 4s infinite ease-in;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-full font-sans flex flex-col justify-between overflow-x-hidden selection:bg-sky-500 selection:text-slate-950">
+
+    <!-- 스마트 에코 트래커 네비게이션 헤더 -->
+    <header class="border-b border-blue-950/80 bg-slate-950/90 backdrop-blur px-6 py-4 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <span class="text-sky-400 text-2xl"><i class="fa-solid fa-droplet animate-pulse"></i></span>
+                <div class="flex flex-col">
+                    <h1 class="text-base md:text-lg font-extrabold font-digital tracking-wide text-slate-100 leading-tight">
+                        AQUA SYSTEM <span class="text-sky-400">ECO-MONITOR</span>
+                    </h1>
+                    <span class="text-[9px] text-slate-500 font-mono tracking-wider">SECURE LINK SYSTEM // v5.2</span>
+                </div>
+            </div>
+            <!-- 실시간 동기화 시계 및 리셋 버튼 -->
+            <div class="flex items-center gap-4 text-xs font-mono">
+                <span class="text-slate-400">STATUS: <span id="header-status" class="text-sky-400 font-bold">100L / 1 DAYS</span></span>
+                <div class="flex items-center gap-3">
+                    <button onclick="resetGame()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 rounded-lg text-slate-300 hover:text-sky-400 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i>초기화
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6 justify-center">
+
+        <!-- 현대적 아쿠아 인트로 화면 -->
+        <div id="intro-screen" class="max-w-3xl mx-auto w-full bg-slate-900/60 border border-blue-900/40 rounded-2xl p-6 md:p-10 flex flex-col items-center text-center gap-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-b from-sky-950/10 to-transparent pointer-events-none"></div>
+            
+            <div class="w-20 h-20 rounded-2xl bg-blue-950/40 border border-sky-500/30 flex items-center justify-center text-3xl text-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.25)]">
+                <i class="fa-solid fa-glass-water-droplet"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-100 font-sans">
+                    10일간 <span class="text-sky-400 font-extrabold">100리터</span> 살기 챌린지
+                </h2>
+                <p class="text-slate-400 font-mono text-xs uppercase tracking-widest">Urban Lifestyle 100L Water Survival</p>
+            </div>
+
+            <p class="max-w-md text-slate-300 leading-relaxed text-sm md:text-base">
+                우리는 일상 속에서 얼마나 많은 물을 아무 생각 없이 흘려보내고 있을까요?<br>
+                제공되는 자원은 단 <strong class="text-sky-400">100리터</strong>뿐이며, 목표는 <strong class="text-sky-400">10일</strong>을 무사히 버텨내는 것입니다.<br>
+                <span class="text-cyan-400 font-semibold">인증 마크나 기교 가전에 현혹되지 마세요. 진짜 현실 수자원 손실 경로를 파악하고, 일상적인 습관 뒤에 숨겨진 팩트를 직접 추적해 보세요.</span>
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center w-full max-w-md z-10">
+                <button onclick="startGame()" class="w-full sm:w-auto px-8 py-3.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-bold tracking-wider rounded-xl shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-0.5 text-base flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> 게임 시작하기
+                </button>
+                <button onclick="openBadgeModal()" class="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 text-slate-300 hover:text-sky-400 font-semibold tracking-wider rounded-xl transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-award text-amber-400"></i> 배지 진열장
+                </button>
+            </div>
+        </div>
+
+        <!-- 게임 플레이 본체 화면 (2단 반응형 대시보드) -->
+        <div id="game-screen" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 왼쪽 (Col 1): 워터탱크 비주얼 라이저 & 실시간 플로우 렛저 -->
+            <div class="flex flex-col gap-4 lg:col-span-1">
+                <div id="tank-card" class="bg-slate-900/40 border border-blue-950 rounded-2xl p-5 flex flex-col justify-between items-center relative min-h-[350px] transition-all">
+                    
+                    <!-- 상단 미터기 정보 -->
+                    <div class="w-full text-center space-y-1 z-25">
+                        <span class="text-xs font-mono text-slate-400 tracking-widest block">CURRENT STORAGE</span>
+                        <div id="water-display" class="text-4xl font-black font-digital text-sky-400 tracking-wider">
+                            100<span class="text-lg text-sky-600 font-mono">L</span>
+                        </div>
+                    </div>
+
+                    <!-- 실시간 수조 컨테이너 -->
+                    <div class="relative w-36 h-48 bg-slate-950/80 rounded-2xl border border-blue-950 overflow-hidden shadow-inner flex flex-col items-center justify-end">
+                        <!-- 수조 내부 계측 눈금 선 -->
+                        <div class="absolute inset-0 w-full h-full flex flex-col justify-between p-4 pointer-events-none z-20 opacity-40">
+                            <div class="w-full border-b border-sky-500/20 text-[10px] text-sky-400 font-mono text-right">100L (MAX)</div>
+                            <div class="w-full border-b border-sky-500/10 text-[10px] text-sky-400 font-mono text-right">75L</div>
+                            <div class="w-full border-b border-sky-500/10 text-[10px] text-sky-400 font-mono text-right">50L</div>
+                            <div class="w-full border-b border-sky-500/10 text-[10px] text-sky-400 font-mono text-right">25L</div>
+                            <div class="w-full text-[10px] text-rose-500 font-mono text-right font-bold animate-pulse">CRITICAL LEVEL</div>
+                        </div>
+
+                        <!-- 실제 파도 시뮬레이션 엘리먼트 -->
+                        <div id="water-wave-back" class="water-wave-back" style="bottom: 100%;"></div>
+                        <div id="water-wave-front" class="water-wave" style="bottom: 100%;"></div>
+
+                        <!-- 현재 리터 잔량 수조 정중앙 텍스트 노출 -->
+                        <div class="absolute inset-0 flex items-center justify-center z-10 select-none">
+                            <span id="tank-percent" class="text-2xl font-digital text-slate-100 font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                                100%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 실시간 수류 계측 로그 터미널 -->
+                <div class="bg-slate-950 border border-blue-950 rounded-xl p-4 flex flex-col gap-2 h-[180px] relative overflow-hidden">
+                    <div class="terminal-scanlines absolute inset-0 pointer-events-none opacity-20"></div>
+                    <div class="flex items-center justify-between border-b border-blue-950/80 pb-1.5 z-10">
+                        <span class="text-[10px] font-mono text-sky-400 tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-terminal text-[8px] animate-pulse"></i> FLOW METER LOG
+                        </span>
+                        <span class="text-[8px] font-mono text-slate-600">LIVE CORRELATION</span>
+                    </div>
+                    <div id="ledger-box" class="flex-grow overflow-y-auto text-[10px] font-mono space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-sky-950 scrollbar-track-transparent z-10">
+                        <div class="text-slate-600">[SYS] 에코 모니터 기동 완료...</div>
+                        <div class="text-slate-600">[SYS] 초기 수자원 100L 정상 로드.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 가운데/오른쪽 (Col 2-3): 라이프 플래너 & 3지선다 콘솔 -->
+            <div class="lg:col-span-2 flex flex-col gap-4">
+                
+                <!-- 일수 및 상태 탑 바 -->
+                <div class="bg-slate-900/40 border border-blue-950 rounded-xl px-5 py-3 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-slate-400">STATUS:</span>
+                        <span id="day-badge" class="px-2.5 py-0.5 bg-blue-950/50 text-sky-400 font-digital text-sm rounded border border-blue-800/40">
+                            DAY 1 / 10
+                        </span>
+                    </div>
+                    <!-- 진행 타임라인 단계 바 -->
+                    <div class="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+                        <span id="timeline-steps" class="flex gap-1.5">
+                            <!-- 10일 단계 원형 뱃지 동적 생성 -->
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 상황 및 선택 모니터 콘솔 -->
+                <div class="bg-slate-900/40 border border-blue-950 rounded-2xl p-6 flex-grow flex flex-col gap-6 justify-between relative overflow-hidden min-h-[350px]">
+                    <div class="absolute top-2 right-4 text-[10px] font-mono text-slate-600 tracking-widest select-none">SYSTEM LOG_</div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-2 text-slate-400 font-mono text-xs">
+                            <span class="text-sky-400">></span> <span id="log-time">DAY 1 - 08:00 AM</span>
+                        </div>
+                        <div id="story-text" class="text-slate-200 leading-relaxed font-sans text-sm md:text-base min-h-[100px]">
+                            데이터 로딩 중...
+                        </div>
+                    </div>
+
+                    <!-- 3가지 선택지 홀더 -->
+                    <div id="choice-container" class="flex flex-col gap-3 w-full z-10">
+                        <!-- 선택지가 자바스크립트에 의해 채워집니다 -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 결과/피드백 모달 창 -->
+        <div id="feedback-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+            <div id="modal-panel" class="bg-slate-900 border border-blue-900 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+                
+                <!-- 모달 헤더 (수자원 소모량 표시) -->
+                <div class="px-6 py-5 border-b border-blue-950 flex items-center justify-between">
+                    <span class="text-xs font-mono text-slate-400 font-bold uppercase tracking-widest" id="modal-title">활동 결과 분석</span>
+                    <span id="water-change-badge" class="px-3 py-1 text-sm font-digital rounded-lg">
+                        -15L
+                    </span>
+                </div>
+
+                <!-- 모달 몸체 -->
+                <div class="p-6 space-y-4">
+                    <p id="modal-desc" class="text-slate-200 leading-relaxed text-sm">
+                        결과 텍스트입니다.
+                    </p>
+                    
+                    <!-- 현실 팩트 카드 -->
+                    <div class="bg-slate-950 rounded-xl p-4 border border-blue-950 flex gap-4 items-start relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-blue-950/10 text-7xl font-sans font-extrabold pointer-events-none">FACT</div>
+                        <span class="text-sky-400 text-2xl mt-1"><i class="fa-solid fa-circle-info"></i></span>
+                        <div class="space-y-1">
+                            <h4 class="text-xs font-mono font-bold text-sky-400 tracking-wider">REAL WATER FACT CHECK</h4>
+                            <p id="modal-fact" class="text-xs text-slate-400 leading-relaxed">
+                                현실 수자원 팩트 코멘트가 노출되는 영역입니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 모달 하단 버튼 -->
+                <div class="px-6 py-4 border-t border-blue-950 bg-slate-950/50 flex justify-end">
+                    <button id="modal-next-btn" class="px-6 py-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-extrabold tracking-wider text-sm rounded-lg transition-colors">
+                        다음 날로 넘어가기 (NEXT DAY)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 최종 엔딩 화면 -->
+        <div id="ending-screen" class="hidden bg-slate-900/60 border border-blue-900 rounded-2xl p-6 md:p-10 flex flex-col items-center text-center gap-6 shadow-2xl relative overflow-hidden">
+            <div id="ending-icon" class="w-20 h-20 rounded-full bg-slate-950 flex items-center justify-center text-4xl shadow-2xl">
+                <!-- 아이콘 동적 교체 -->
+            </div>
+            
+            <div class="space-y-2">
+                <h2 id="ending-title" class="text-2xl md:text-3xl font-extrabold tracking-tight">
+                    챌린지 최종 결과
+                </h2>
+                <p id="ending-subtitle" class="text-slate-400 font-mono text-xs uppercase tracking-widest">CHALLENGE EVALUATION REPORT</p>
+            </div>
+
+            <p id="ending-desc" class="max-w-md text-slate-300 leading-relaxed text-sm md:text-base">
+                생존 여부 결과 보고서 텍스트 영역입니다.
+            </p>
+
+            <!-- 기본 통계표 -->
+            <div class="bg-slate-950 rounded-xl border border-blue-950 p-4 max-w-sm w-full space-y-3 text-left font-mono text-xs">
+                <div class="flex justify-between border-b border-blue-950/50 pb-2">
+                    <span class="text-slate-400">남은 잔여 수자원:</span>
+                    <span id="final-water" class="text-sky-400 font-bold">45L</span>
+                </div>
+                <div id="survival-day-row" class="flex justify-between border-b border-blue-950/50 pb-2 hidden">
+                    <span class="text-slate-400">생존 실패 시점:</span>
+                    <span id="final-survival-day" class="text-rose-500 font-bold">DAY 1</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">나의 에코 등급 (Rank):</span>
+                    <span id="final-rank" class="text-sky-400 font-bold">S등급</span>
+                </div>
+            </div>
+
+            <!-- 부문별 수자원 소모 정밀 진단 그래프 및 처방 -->
+            <div class="bg-slate-950 rounded-xl border border-blue-950 p-5 max-w-md w-full space-y-4 text-left font-sans">
+                <h3 class="text-xs font-mono font-bold text-sky-400 tracking-wider border-b border-blue-950/50 pb-2 flex items-center justify-between">
+                    <span>SECTOR SPENDING AUDIT (소모 부문 분석)</span>
+                    <span class="text-[10px] text-slate-500">LITERS SPENT</span>
+                </h3>
+                
+                <div class="space-y-3 text-xs">
+                    <!-- 위생 부문 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-300 font-mono text-[11px]">
+                            <span>1. 위생 및 세정 (Hygiene)</span>
+                            <span id="spent-hygiene-val" class="font-bold text-sky-400">0L</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="spent-hygiene-bar" class="bg-sky-500 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                    <!-- 식기/주방 부문 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-300 font-mono text-[11px]">
+                            <span>2. 주방 식기/세척 (Kitchen)</span>
+                            <span id="spent-kitchen-val" class="font-bold text-sky-400">0L</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="spent-kitchen-bar" class="bg-sky-400 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                    <!-- 의류/가사 부문 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-300 font-mono text-[11px]">
+                            <span>3. 빨래 및 대청소 (Housework)</span>
+                            <span id="spent-housework-val" class="font-bold text-sky-400">0L</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="spent-housework-bar" class="bg-blue-600 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                    <!-- 기타/음용 부문 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-300 font-mono text-[11px]">
+                            <span>4. 수분 음용/기타 (Others)</span>
+                            <span id="spent-others-val" class="font-bold text-sky-400">0L</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                            <div id="spent-others-bar" class="bg-indigo-600 h-full w-0 transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 취약점 진단 피드백 박스 -->
+                <div class="mt-4 p-3.5 bg-blue-950/30 rounded-xl border border-sky-950 text-xs text-slate-300 leading-relaxed">
+                    <div class="flex items-center gap-1.5 font-mono text-sky-400 font-bold mb-1">
+                        <i class="fa-solid fa-calculator text-[10px]"></i> SYSTEM SPENDING ADVISORY:
+                    </div>
+                    <p id="ending-advice" class="text-slate-400">
+                        귀하의 소비 패턴을 분석 중입니다...
+                    </p>
+                </div>
+            </div>
+
+            <button onclick="resetGame()" class="px-8 py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold tracking-wider rounded-xl transition-all uppercase text-sm">
+                챌린지 처음부터 다시하기 (Restart)
+            </button>
+        </div>
+
+        <!-- 신규: 배지 진열장 모달 창 -->
+        <div id="badge-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+            <div id="badge-panel" class="bg-slate-900 border border-blue-900 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+                <div class="px-6 py-5 border-b border-blue-950 flex items-center justify-between">
+                    <span class="text-xs font-mono text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-award text-amber-400"></i> 아쿠아 업적 진열장 (AQUA ACHIEVEMENTS)
+                    </span>
+                    <button onclick="closeBadgeModal()" class="text-slate-400 hover:text-rose-400 transition-colors">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <!-- 배지 그리드 홀더 -->
+                <div class="p-6 overflow-y-auto max-h-[60vh] scrollbar-thin scrollbar-thumb-sky-950 scrollbar-track-transparent">
+                    <div id="badge-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- JS를 통해 배지가 채워집니다 -->
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-blue-950 bg-slate-950/50 flex justify-between items-center">
+                    <button id="reset-badges-btn" onclick="handleResetBadges(this)" class="px-4 py-2.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 hover:text-rose-200 text-xs font-bold rounded-lg border border-rose-900/50 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-trash-can"></i> 배지 초기화
+                    </button>
+                    <button onclick="closeBadgeModal()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold rounded-lg border border-slate-800 transition-all">
+                        진열장 닫기 (CLOSE)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 신규: 배지 잠금해제 알림 토스트 -->
+        <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+            <!-- 동적 알림 토스트 생성 구역 -->
+        </div>
+
+    </main>
+
+    <footer class="border-t border-blue-950 bg-slate-950 py-4 text-center text-[10px] text-slate-500 font-mono">
+        <p>© 2026 AQUA SYSTEM 100L PROJECT. DEBUNKING ALL WATER WASTING MYTHS.</p>
+    </footer>
+
+    <!-- 자바스크립트 브레인 제어 -->
+    <script>
+        // 무손실 사운드 신디사이저 모듈 설계 및 보안 예외 우회 장치 구축
+        let audioCtx = null;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            } catch (error) {
+                console.warn("오디오 컨텍스트 기동 실패 (보안 및 IFrame 샌드박스 정책 우회):", error);
+            }
+        }
+
+        const sounds = {
+            click: () => {
+                try {
+                    if (!audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } catch (e) {
+                    // 예외 방어
+                }
+            },
+            warning: () => {
+                try {
+                    if (!audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(180, audioCtx.currentTime + 0.15);
+                    osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } catch (e) {
+                    // 예외 방어
+                }
+            },
+            success: () => {
+                try {
+                    if (!audioCtx) return;
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, index) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1);
+                        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + index * 0.1);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.1 + 0.25);
+                        osc.start(audioCtx.currentTime + index * 0.1);
+                        osc.stop(audioCtx.currentTime + index * 0.1 + 0.25);
+                    });
+                } catch (e) {
+                    // 예외 방어
+                }
+            },
+            fail: () => {
+                try {
+                    if (!audioCtx) return;
+                    const notes = [293.66, 220.00, 146.83];
+                    notes.forEach((freq, index) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.15);
+                        gain.gain.setValueAtTime(0.15, audioCtx.currentTime + index * 0.15);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.15 + 0.35);
+                        osc.start(audioCtx.currentTime + index * 0.15);
+                        osc.stop(audioCtx.currentTime + index * 0.15 + 0.35);
+                    });
+                } catch (e) {
+                    // 예외 방어
+                }
+            }
+        };
+
+        // 10일간의 활동 기획 테이블 (물 소비 수치: 고[15~25L], 중[10~15L], 저[1~5L] 정밀 매핑)
+        const scenario = {
+            1: {
+                title: "바쁜 아침의 양치와 세안",
+                situation: "바쁜 아침입니다. 출근 전 단정하고 완벽하게 양치와 세안을 마쳐보려 합니다. 가장 선호하는 세정 행동을 골라주세요.",
+                dayName: "DAY 1",
+                category: "hygiene",
+                categoryKo: "위생/세정",
+                choices: [
+                    {
+                        text: "수돗물을 잠그지 않고 3분간 완전히 계속 틀어둔 채 세안한다.",
+                        water: -22,
+                        tier: "high",
+                        fact: "수도꼭지를 끝까지 틀어둘 때 나오는 물은 분당 평균 10L 안팎에 달합니다. 얼굴을 문지르는 3분여 동안 물을 켜두기만 해도 엄청난 양의 고순도 정수가 그대로 하수구로 수직 낙하하며 흔적도 없이 사라집니다.",
+                        desc: "얼굴은 뽀송하게 빛나지만, 하염없이 흘려보낸 정수 직수 압력으로 인해 수조 탱크에서 무려 22L의 거대한 누수가 기재되었습니다!"
+                    },
+                    {
+                        text: "손의 움직임을 자동 인식하는 모션 감지 수전 아래에서 빠르게 세안한다.",
+                        water: -12,
+                        tier: "medium",
+                        fact: "모션 감지 센서 수전은 손을 씻을 때는 훌륭한 절수 도구(약 30%~50% 절약)이지만, 얼굴 전체를 문지르는 긴 세안 중에는 센서가 손과 얼굴의 반복적인 왕복 동작을 계속 감지하여 계속 수전을 열어두게 됩니다. 결국 흐르는 물(직수)에 얼굴을 계속 비벼 헹구는 구조적 한계 때문에 대야에 물을 받아 쓸 때보다는 여전히 약 3배 이상의 물을 소모하게 됩니다.",
+                        desc: "흐르는 직수 아래에서 센서가 반복 동작하며 세안하는 사이, 물탱크에서 12L가 연달아 빠져나갔습니다."
+                    },
+                    {
+                        text: "양치 컵을 활용해 가글하고 세면대에 대접 크기의 물을 받아 세안한다.",
+                        water: -3,
+                        tier: "low",
+                        fact: "양치 컵을 사용해 가글하고 세면대(대야)에 물을 받아서 세안하는 클래식한 가둠식 세정법은, 흐르는 수돗물에 직접 대고 세수할 때보다 총 사용 수량을 정직하게 80% 이상 강제로 감축시키는 가장 검증된 절약 물리 제어 방식입니다.",
+                        desc: "다소 번거로운 아날로그 방식이지만 수동 제어를 통해 최종 소비 수량을 단 3L로 완벽하게 묶어 세안을 마쳤습니다!"
+                    }
+                ]
+            },
+            2: {
+                title: "웰빙 저녁 식사 - 생 채소 세척",
+                situation: "마트에서 구입한 신선한 다이어트용 상추와 오이를 씻으려 합니다. 잔류 농약과 미세 먼지를 완전히 청소하고 싶습니다.",
+                dayName: "DAY 2",
+                category: "kitchen",
+                categoryKo: "주방/요리",
+                choices: [
+                    {
+                        text: "수돗물을 세게 틀어둔 채 흐르는 물에 채소를 하나하나 직접 대며 씻는다.",
+                        water: -18,
+                        tier: "high",
+                        fact: "흐르는 수돗물 아래에서 채소를 개별 세척하는 직수 방식은 가두어 씻는 방식에 비해 수량이 무자비하게 소비됩니다. 특히 야채를 가다듬거나 이물질을 살피며 뒤집는 대기 시간 동안 수도꼭지는 최대 압력으로 수자원을 그대로 공중 분사하여 하수로 증발시킵니다.",
+                        desc: "채소는 바삭하게 씻겼지만, 손가락 틈으로 유실된 물이 물탱크 계측 센서에 누적 18L 감폭이라는 강력한 수치로 잡힙니다."
+                    },
+                    {
+                        text: "수압 절수 구멍이 있는 에코 분무 샤워 헤드를 장착해 넓은 분무 아래서 헹군다.",
+                        water: -11,
+                        tier: "medium",
+                        fact: "에코 분무 샤워기는 미세한 구멍으로 수압을 높여 절수 효과를 유도합니다. 그러나 물입자가 극도로 얇아지면 상추나 오이 주름 속 잔류 농약과 흙 알갱이를 씻어내는 수막 타격력이 약해집니다. 결국 동일한 청결도를 느끼기 위해 세척 동작을 더 오래 유지하는 '사용 시간 역설(Rebound Effect)'이 작동하여 실질 유출량을 높입니다.",
+                        desc: "에코 샤워기의 분무 안개 속에서 상추를 뒤집는 시간이 길어지면서, 결과적으로 11L의 예상외 손실을 기록했습니다."
+                    },
+                    {
+                        text: "싱크대 대야에 물을 가득 가두어 한꺼번에 흔들어 씻고 남은 물은 변기용으로 둔다.",
+                        water: -2,
+                        tier: "low",
+                        fact: "대야나 믹싱볼에 물을 가두어 채소를 흔들어 씻는 가둠 세척은 흐르는 물 대비 세척 효율이 최대 5배 이상 높습니다. 여기에 씻고 남은 물을 화분이나 청소용 중수로 2차 순환 사용하면 자원 소멸 누수를 제로에 가깝게 통제할 수 있습니다.",
+                        desc: "대야를 사용한 아날로그 방식 덕분에 소모 수량은 단 2L로 방어하는 훌륭한 고증 실적을 증명했습니다!"
+                    }
+                ]
+            },
+            3: {
+                title: "땀 흘린 퇴근 후 힐링 목욕",
+                situation: "오늘 하루도 피로했습니다. 샤워나 목욕을 통해 전신의 노폐물을 씻어내고 편안한 힐링 시간을 가지고 싶습니다.",
+                dayName: "DAY 3",
+                category: "hygiene",
+                categoryKo: "위생/세정",
+                choices: [
+                    {
+                        text: "욕조 한가득 온수를 채워 반신욕을 즐긴 뒤 바로 배수 밸브를 열어 버린다.",
+                        water: -25,
+                        tier: "high",
+                        fact: "일반 가정용 욕조를 가득 채우는 물의 양은 약 150L에서 200L에 달하며, 절반만 채우는 반신욕조차 단 한 번에 최소 80L~100L의 귀중한 정수를 필요로 합니다. 욕조 목욕은 정수 사용 관점에서 가장 파괴적인 사치성 낭비 행동군에 속합니다.",
+                        desc: "온몸의 피로는 녹아내렸으나 수조의 물량 또한 통째로 증발했습니다! 무려 25L의 물이 탱크 밑바닥으로 사라집니다."
+                    },
+                    {
+                        text: "샤워기를 켠 채 비누칠과 헹굼 동작을 5분 내외로 타이트하게 조율하여 마친다.",
+                        water: -14,
+                        tier: "medium",
+                        fact: "5분 내외의 빠르게 조율된 샤워는 약 50~60L의 수자원을 소비하므로 욕조 목욕 대비 절반의 눈에 띄는 절수 효과를 냅니다. 만약 '빠른 샤워' 대신 샤워기를 켜둔 채 15분 이상 긴 시간을 소모하게 되면 150L가 넘는 물을 버려 오히려 욕조 목욕보다 훨씬 심각한 자원 고갈을 초래하게 됩니다.",
+                        desc: "시간을 철저하게 방어하며 신속하게 씻은 덕분에 수위선 유실을 14L 수준에서 똑똑하게 방어해 냈습니다."
+                    },
+                    {
+                        text: "양동이에 온수를 일정량 받아두고 바가지를 사용해 머리부터 헹구어 씻는다.",
+                        water: -4,
+                        tier: "low",
+                        fact: "샤워기를 끈 채로 양동이에 일정한 수량만 채워 바가지를 활용하는 아날로그식 수조 세정은 불필요한 물의 자동 배수를 완벽히 차단합니다. 또한 자기가 쓰는 물리적인 잔량을 눈으로 보며 씻어 행동을 극적으로 통제시키는 심리적 억제 효과도 발휘합니다.",
+                        desc: "생명 잔량 탱크 수위는 기적적인 수치인 4L만 감소하며 위풍당당하게 방어해 냈습니다!"
+                    }
+                ]
+            },
+            4: {
+                title: "기름기가 가득한 토마토 파스타 설거지",
+                situation: "식사 후 기름때와 진득한 파스타 소스가 뒤범벅된 접시와 후라이팬이 싱크대에 쌓여 있습니다.",
+                dayName: "DAY 4",
+                category: "kitchen",
+                categoryKo: "주방/요리",
+                choices: [
+                    {
+                        text: "수돗물 직수를 길게 틀어놓고 기름때 묻은 접시를 직접 비벼가며 흐르는 물살에 헹군다.",
+                        water: -20,
+                        tier: "high",
+                        fact: "기름진 양념을 사전에 쓸어내지 않고 곧바로 거품 세척수와 수돗물을 틀어대면 접시 표면의 기름이 수세미 및 거품과 유화하여 거대한 기름 오염막을 형성합니다. 이를 제거하려 더 많은 헹굼 정수와 온수를 장시간 켜두게 되어 소비율이 급격히 늘어났습니다.",
+                        desc: "기름 미끈거림을 뽀득하게 밀어내는 대가로 수도관 계측기는 20L의 막대한 유출을 기록해 내고 경보음을 울립니다."
+                    },
+                    {
+                        text: "소량의 세탁 식기이지만 식기세척기에 가득 밀어넣고 '쾌속 세정' 코스를 가동한다.",
+                        water: -13,
+                        tier: "medium",
+                        fact: "식기세척기는 12인용 이상 많은 용량의 가득 찬 설거지에는 우수한 절수 효율을 보이지만, 몇 장 안 되는 소량의 식기를 넣고 돌리는 '소량 퀵 코스'는 기계 자체의 기본 동작을 유지하기 위해 최소 10~15L의 필수 배관 기동수를 가습 고정 방출하므로 고낭비를 유발합니다.",
+                        desc: "식기는 알아서 건조되었으나, 기계의 필수 가동수 루틴 작동으로 인해 13L의 여과수가 가볍게 손실 기재되었습니다."
+                    },
+                    {
+                        text: "설거지 전 유분을 마른 천으로 먼저 완벽히 닦아낸 뒤, 대야에 따뜻한 물을 채워 씻는다.",
+                        water: -3,
+                        tier: "low",
+                        fact: "설거지 절약의 최고의 핵심은 물의 양이 아닌 '사전 건식 유분 흡착'입니다. 키친타올이나 전용 스크래퍼로 기름기와 소스를 90% 이상 사전 수거하여 배출하면, 본 세척 단계에서 요구되는 물과 세제의 양을 기존 대비 무려 4분의 1 이하로 정직하게 절감해 줍니다.",
+                        desc: "손에 소스가 조금 묻긴 했으나, 기름기를 미리 닦아두니 식기를 단 3L에 뽀송하게 정돈했습니다!"
+                    }
+                ]
+            },
+            5: {
+                title: "수건과 속옷의 가벼운 밀린 빨래",
+                situation: "세탁 바구니에 당장 내일 입어야 할 셔츠 한 장과 운동 후 축축해진 타월 몇 장이 놓여 있어 세탁이 급선무입니다.",
+                dayName: "DAY 5",
+                category: "housework",
+                categoryKo: "가사/빨래",
+                choices: [
+                    {
+                        text: "드럼 세탁기를 켜고 셔츠 살균을 위해 긴 온수 불림이 포함된 '표준 사이클'을 가동한다.",
+                        water: -24,
+                        tier: "high",
+                        fact: "아무리 용량이 적은 드럼 세탁기라도 '세탁'과 '헹굼', '탈수'의 정기 행정을 거치는 동안 세탁조 전체를 일정 수위만큼 매번 가득 채워야 하는 고정 필요 물량(Base Load)이 존재합니다. 단 몇 장의 가벼운 의류만을 기계 단독 표준 작동하는 것은 가장 가혹한 낭비를 유발합니다.",
+                        desc: "완벽히 살균된 셔츠를 얻었지만 세탁통 전체를 채웠던 물이 방출되면서 24L의 거대한 물리적 정수가 통째로 배수관 너머로 사라졌습니다."
+                    },
+                    {
+                        text: "세탁 시간을 크게 줄인 드럼 세탁기의 '15분 초스피드 쾌속 코스'를 기동하여 빤다.",
+                        water: -12,
+                        tier: "medium",
+                        fact: "세탁기의 '초스피드 쾌속' 모드는 회전 시간은 단축하지만 섬유 내부의 세제와 먼지를 신속히 뽑아내기 위해 고압의 정수를 세탁조 천장에서 거세게 연달아 쏘는 '스프레이 고압 샤워 분사' 메커니즘을 강제로 구동합니다. 시간은 아끼지만 순간 수자원 소모 압력은 더 높아집니다.",
+                        desc: "15분이라는 쾌적함 속에 셔츠가 나왔지만, 기계가 가동을 보정하려 순간 난사한 수량만 무려 12L가 체크되었습니다."
+                    },
+                    {
+                        text: "대용량 빨래는 나중에 한꺼번에 돌리기로 하고 당장 입을 셔츠만 대야에서 손빨래한다.",
+                        water: -5,
+                        tier: "low",
+                        fact: "세탁기는 용량에 상관없이 1회 가동 시 물을 대량 점유하므로 빨랫감을 한데 모아 한 번에 돌리는 정돈이 최고의 효율을 냅니다. 기계가 요구하는 고정 소모량 배출을 아예 원천 차단하고 단독 소량은 수동으로 손빨래를 해내는 것이 절대적인 절수 관리 공식입니다.",
+                        desc: "빨래를 손으로 비틀어 짜내느라 손끝이 뻐근했지만, 수조 잔량은 완벽하게 5L로 차단 방어해 내는 쾌거를 얻었습니다."
+                    }
+                ]
+            },
+            6: {
+                title: "주말 주거 공간 대청소",
+                situation: "바닥에 굳어버린 먼지 입자와 문틀의 까만 묵은 때 자국을 말끔하게 정돈하고 상쾌하게 청소하려 합니다.",
+                dayName: "DAY 6",
+                category: "housework",
+                categoryKo: "가사/빨래",
+                choices: [
+                    {
+                        text: "화장실과 거실 바닥 전체에 대용량 물을 양동이째 연달아 뿌리며 씻어내는 물청소를 한다.",
+                        water: -19,
+                        tier: "high",
+                        fact: "바닥을 시원하게 청소하려고 직접 대용량 물을 양동이째 연달아 뿌리는 '물바다식 물청소'는 번 당 수십 리터의 하수 누출을 유발합니다. 고여서 흩뿌려지는 물의 절대다수는 먼지를 쓸어내기도 전에 그대로 배수 구멍으로 탈출하여 하수로 가라앉는 사각지대가 발생합니다.",
+                        desc: "바닥은 촉촉하게 씻겼지만, 양동이를 기울일 때마다 계측기에서 무려 19L의 막대한 차감 경보가 울렸습니다!"
+                    },
+                    {
+                        text: "욕실 직수 수돗물을 흐르는 채로 켜두고 극세사 걸레를 계속 헹궈가며 방을 청소한다.",
+                        water: -11,
+                        tier: "medium",
+                        fact: "수동 밀대 청소는 기계 장치의 낭비는 방지하지만, 극세사 패드를 수도꼭지 아래에서 빨고 뒤집는 수동 대기 과정에서 수도꼭지를 잠그지 않고 계속 틀어두게 되는 사각지대가 존재합니다. 이 흘려보내는 유출량이 청소 한 번당 평균 10~12L까지 가볍게 누적됩니다.",
+                        desc: "직수 아래에서 패드를 문지르는 도중 졸졸 새어나간 낙하수로 인해 11L의 예상 낭비가 조용히 잡히고 말았습니다."
+                    },
+                    {
+                        text: "건식 청소포나 빗자루로 먼지를 사전에 털고 오염된 부분만 분무기를 미량 뿌려 닦는다.",
+                        water: -2,
+                        tier: "low",
+                        fact: "모든 생활 주거 청소의 근본은 '건식 청소 우선주의'입니다. 바닥 전반을 굳이 과도한 액상 수분으로 질척이게 덮어 닦아내기 전에, 고체 형태의 먼지를 빗자루나 정전기 포로 먼저 안전하게 가둔 뒤 꼭 필요한 타액/오염 부위만 미량의 정밀 제어로 해결하면 수량 낭비를 사실상 제로화시킬 수 있습니다.",
+                        desc: "청소기를 쓰지 않고 먼지를 쓰는 공정이 조금 귀찮았지만, 최종 수량 손실은 단 2L라는 실적을 달성했습니다!"
+                    }
+                ]
+            },
+            7: {
+                title: "더운 한여름의 갈증 해소",
+                situation: "방 안의 온도가 시시각각 치솟는 폭염이 주거지를 감싸고 있습니다. 갈증이 극심해 시원한 얼음장 같은 냉수가 필요합니다.",
+                dayName: "DAY 7",
+                category: "others",
+                categoryKo: "음용/기타",
+                choices: [
+                    {
+                        text: "배관 속 고여있던 미지근한 수돗물이 다 빠져 차가운 지하수가 올라올 때까지 30초 동안 물을 버린다.",
+                        water: -15,
+                        tier: "high",
+                        fact: "차가운 물 단 200ml 한 잔을 채우기 위해 수도관과 실내 배관 라인 내부에 고여 있던 미지근한 여과 정수를 그대로 하수구로 버리는 습관은, 실제 도시 주거 생활자들이 자각 없이 저지르는 가장 흔하고 압도적인 상하수도 자원 증발 행동 양식입니다.",
+                        desc: "이가 시릴 만큼 찬물 한 컵에 감동했지만, 그 한 컵을 위해 하수구로 흘려버린 누수만 수조 기록계에 무려 15L의 낙하로 표시됩니다."
+                    },
+                    {
+                        text: "필터 세정과 정수를 조절하는 동작 중 소중한 수돗물을 퇴수 라인으로 흘려 버리는 '역삼투압 냉정수기' 냉수를 뺀다.",
+                        water: -10,
+                        tier: "medium",
+                        fact: "역삼투압(RO, Reverse Osmosis) 정수 시스템은 0.0001미크론의 머리카락 수백만분의 일 굵기 미세 구멍막을 밀어붙여 무기염과 오염을 정수합니다. 그러나 이 가느다란 필터의 막힘과 이물질 부착을 강제로 세정 및 역류시키기 위해, 정수 1L를 걸러내는 매 동작 도중 귀중한 수돗물을 멤브레인 폐수 배출관으로 버리는 고질적인 퇴수 유출을 발생시킵니다.",
+                        desc: "완벽하게 여과된 차가운 냉수 한 잔을 들이켰으나, 보이지 않는 폐수 라인으로 10L의 원수가 고압 방출되었습니다."
+                    },
+                    {
+                        text: "수돗물을 그대로 즉시 받아 버림 없이 마시고 더위는 냉장실에 저장해 둔 얼음 한 알로 이겨낸다.",
+                        water: -2,
+                        tier: "low",
+                        fact: "도시 주거 수도관 파이프 라인의 수온 강하 흐름을 대기하며 흘려버리지 않고, 상온의 식수를 즉시 받아 마시는 습관은 수자원 유실을 완전하게 차단합니다. 또한, 냉장 보관된 정량의 얼음 한 알을 입에 직접 물어 심리적 체온을 유도하는 방식은 낭비를 원천 차단하는 지혜입니다.",
+                        desc: "물은 밍밍하고 미지근했지만, 입속의 얼음 한 알로 더위를 극복하며 자원 소비율을 단 2L로 보존했습니다!"
+                    }
+                ]
+            },
+            8: {
+                title: "용변 후 양변기 물 내리기",
+                situation: "화장실 볼일을 무사히 마치고 나왔습니다. 변기 안의 배설 오염물을 깨끗하게 내리려 합니다.",
+                dayName: "DAY 8",
+                category: "hygiene",
+                categoryKo: "위생/세정",
+                choices: [
+                    {
+                        text: "냄새와 완벽한 위생 격리를 위해 화장실 변기 물내림 레버를 연속 2회 이상 내린다.",
+                        water: -21,
+                        tier: "high",
+                        fact: "용변 후 세균 비산을 방지하려 연속으로 변기 물을 2회 이상 내리는 행동은 과도한 청결 강박입니다. 일반 변기의 회당 배출 수량은 최소 10~13L에 달하므로, 2회 가동하는 것만으로 단 한 번의 볼일에 약 20L가 넘는 깨끗한 정제수를 그대로 변기 배관 하부로 버리게 됩니다.",
+                        desc: "냄새와 위생은 완벽히 제거되었지만, 한 번의 용변에 수조에서 무려 21L의 엄청난 정수가 휩쓸려 사라지는 수량 경보가 발생했습니다."
+                    },
+                    {
+                        text: "대소변 구분을 가리지 않고 일정 수량의 고정 세척수를 가습 방출하는 '자동 스마트 센서 비데 변기'를 쓴다.",
+                        water: -11,
+                        tier: "medium",
+                        fact: "자동 물내림 변기(자동 센서 비데)는 용변 후 몸을 일으키거나 하의를 정리하는 미세한 움직임에도 센서가 오작동하여 불필요하게 물내림 사이클을 추가 기동시키는 결함이 잦습니다. 또한 매 물내림 시 수위 복원 압력 유지를 위해 고정된 대용량 배수(회당 약 12~15L)를 유도합니다.",
+                        desc: "정리하는 도중에 센서가 오인식하여 알아서 물을 내려버렸고, 이로 인해 수조 속에서 11L의 소중한 정수가 통째로 쏟아졌습니다."
+                    },
+                    {
+                        text: "수동 레버의 장치를 제어하여 가볍고 소모 수량이 짧게 세팅된 소변 전용(절약형) 방향으로 가볍게 내린다.",
+                        water: -3,
+                        tier: "low",
+                        fact: "대소변 구분이 기계식으로 나누어진 수동 레버는 인간이 주도적으로 판단하여 불필요한 이중 누수나 기계 인식 지연 에러를 완벽히 차단합니다. 소변용 가벼운 플러싱은 단 5~7L의 소량만 수조에서 털어내도록 완벽하게 밸런스 설계된 검증된 세정 방식입니다.",
+                        desc: "간단히 수동 레버를 조작하여 단 3L로 용변을 깨끗하게 정리하며, 수조 속의 생명선을 안전하게 안착시켰습니다."
+                    }
+                ]
+            },
+            9: {
+                title: "저녁 식사용 주식 쌀 씻기",
+                situation: "따뜻하고 상쾌한 저녁 식사를 위해 주식인 쌀을 손질하여 압력밥솥에 안착시키려 합니다.",
+                dayName: "DAY 9",
+                category: "kitchen",
+                categoryKo: "주방/요리",
+                choices: [
+                    {
+                        text: "체망에 쌀을 수북하게 올리고 수도꼭지를 세게 틀어둔 직수 물길 아래에서 계속 헹군다.",
+                        water: -17,
+                        tier: "high",
+                        fact: "흐르는 수돗물 아래에 세정용 채반을 직접 대고 쌀을 세게 치대는 행동은 뒤집고 가다듬는 2분여의 시간 동안 쏟아져 나오는 수자원을 하수관으로 완벽하게 그대로 직수 통과시키는 고낭비 행동입니다. 또한 과도하게 전분기가 씻겨 쌀의 소중한 비타민과 영양도 함께 소실됩니다.",
+                        desc: "상쾌하게 쌀을 세척했지만, 콸콸 쏟아져 내려간 직수 압력 탓에 물 게이지는 17L의 무거운 실질 지출을 경고하고 나섭니다."
+                    },
+                    {
+                        text: "일반 세정용 볼에 담가 씻은 후 물을 비워내되, 유용한 전분 쌀뜨물 전량을 개수구에 바로 버린다.",
+                        water: -10,
+                        tier: "medium",
+                        fact: "믹싱볼에 가두어 씻는 방식은 흐르는 채반 헹굼에 비해 유출 소비율을 절반 이하로 줄여줍니다. 하지만 매번 가득 채운 물 대접의 쌀뜨물을 활용 순환 절차 없이 그대로 하수로 직접 토출하기 때문에, 1차적인 수자원 직접 소멸을 완벽히 방어해 내지는 못합니다.",
+                        desc: "그나마 조심히 버려가며 헹구었으나, 세 차례 믹싱볼에서 배출된 수돗물이 누적되어 총 10L의 물탱크 차감을 남겼습니다."
+                    },
+                    {
+                        text: "쌀 씻기를 조심히 끝내고 모아진 고농도 쌀뜨물은 기름때를 닦아낼 천연 주방 비누 세제로 따로 보관한다.",
+                        water: -2,
+                        tier: "low",
+                        fact: "쌀을 씻고 나오는 1차 쌀뜨물은 미세 전분 입자가 풍부하여 식기 표면의 천연 기름때를 물리적으로 가두어 주는 아주 우수한 친환경 세정 물질입니다. 이를 따로 피처병에 모아두고 설거지 애벌 세제나 찌개 국물로 사용하면 수자원 소모와 세제 사용량을 기하급수적으로 아낄 수 있습니다.",
+                        desc: "쌀뜨물을 병에 모으는 공정이 다소 번잡했지만, 이 모은 물로 기름 식기를 예비 청소하여 단 2L의 소모만으로 1석 2조의 쾌거를 거뒀습니다!"
+                    }
+                ]
+            },
+            10: {
+                title: "반려 식물 홈 가드닝",
+                situation: "어느덧 챌린지 마지막 날입니다! 거실 귀퉁이에서 바짝 시들어가며 무기력하게 고개를 숙인 초록 화초들에게 수분을 급수하려 합니다.",
+                dayName: "DAY 10",
+                category: "others",
+                categoryKo: "음용/기타",
+                choices: [
+                    {
+                        text: "식물용 조준 샤워 주전자에 물을 가득 담아 사방의 잎과 흙에 넘치도록 세게 끼얹는다.",
+                        water: -16,
+                        tier: "high",
+                        fact: "공중에 미스트나 분무기로 물을 마구 발사하고 흙 상태를 고려하지 않고 과도하게 물을 들이부으면, 식물의 수분 흡수 핵심인 '뿌리 밑동'에 닿기도 전에 물이 상온 건조 공기 중으로 즉각 기화 및 증발합니다. 또한 한계를 넘은 수분은 화분 밑바닥 배수 트레이 밖으로 흘러넘쳐 버려지는 중력식 낭비를 동반합니다.",
+                        desc: "사방이 상쾌해지는 기분은 들었으나 식물이 제대로 마시기 전에 16L의 정수가 공중과 바닥 밖으로 누출되어 증발했습니다."
+                    },
+                    {
+                        text: "안개 감성의 실내 가습을 위해 화분 부근에 초미세 고압 물분사 가습기를 긴 시간 틀어둔다.",
+                        water: -10,
+                        tier: "medium",
+                        fact: "초미세 안개 가습 펌프 제품군은 잎을 얇은 미스트로 감싸 화초 표면의 먼지를 정돈하고 절약하는 것처럼 연출합니다. 하지만 뿌리로 흘러 들어가야 하는 실질 수분이 턱없이 부족하여 화초의 실질 해갈에는 도움이 되지 못하고, 장시간 초미세 기기를 가동하게 만들어 물을 공중에 허투루 날립니다.",
+                        desc: "안개가 예쁘게 피어올랐으나 화분 속 흙 자체는 해결되지 못했고, 기계 노즐로 분출된 정수 10L만 공중 기화로 잃었습니다."
+                    },
+                    {
+                        text: "화분 속 건조도를 수동으로 꼼꼼히 점검한 뒤, 생활 대기용 보관수를 식물 뿌리 흙에 정밀 유량 급수한다.",
+                        water: -2,
+                        tier: "low",
+                        fact: "흙의 속 건조도를 수동으로 검증하여 불필요한 과습을 완벽히 방지하고, 주방 생활 단계에서 받아두었던 실온 대기수를 점적 주입 방식으로 화분 밑동 흙에 흘려주는 것은 공중 증발하고 바닥 누출을 완벽하게 예방하여 100% 식물이 수분을 세포 속으로 안착하게 만드는 최고 수준의 수자원 제어법입니다.",
+                        desc: "흙을 만지며 정밀 수분을 확인한 뒤, 아껴둔 재활용 보관수를 정밀 투입하여 단 2L의 소모만으로 화초의 해갈을 완벽히 완수했습니다!"
+                    }
+                ]
+            }
+        };
+
+        // GLOBAL STATE
+        let currentDay = 1;
+        let water = 100;
+        let isGameOver = false;
+
+        // 실시간 카테고리별 소모 수량 추적 변수
+        let spentStats = {
+            hygiene: 0,
+            kitchen: 0,
+            housework: 0,
+            others: 0
+        };
+
+        // 각 날짜별 유저의 선택 티어 기록부 (1: null, 2: null... 10: null)
+        let dayTiers = {};
+
+        // 배지 마스터 데이터 정의
+        const BADGES = [
+            { id: 'beginner', name: '초보 세이버', icon: 'fa-solid fa-seedling text-emerald-400', desc: '챌린지를 1회 완주해보세요. (성공/실패 무관)', condition: '1회 완주 완료' },
+            { id: 'guardian', name: '아쿠아 가디언', icon: 'fa-solid fa-shield-halved text-sky-400', desc: 'S등급(남은 물 50L 이상)으로 완주에 성공해보세요.', condition: 'S등급 완주 성공' },
+            { id: 'artist', name: '물방울 예술가', icon: 'fa-solid fa-palette text-purple-400', desc: '10일 동안 가장 적은 소비(Low)를 5회 이상 선택하세요.', condition: '최소 소비 5회 이상' },
+            { id: 'perfect', name: '완전 무결 생존', icon: 'fa-solid fa-star text-amber-400', desc: '단 한 번도 고소모(High) 선택을 하지 않고 완주해보세요.', condition: '고소모(High) 선택 0회' },
+            { id: 'cactus', name: '사막의 선인장', icon: 'fa-solid fa-sun text-orange-500', desc: '수자원이 완전히 고갈되어 생존에 실패해보세요.', condition: '생존 실패 경험 1회' },
+            { id: 'tracer', name: '현실 팩트 추적자', icon: 'fa-solid fa-magnifying-glass-chart text-rose-400', desc: '이 시뮬레이터를 총 3회 이상 완주해보세요.', condition: '3회 플레이 완주 완료' }
+        ];
+
+        // 로컬 스토리지 데이터 로드 및 초기화
+        function getUnlockedBadges() {
+            try {
+                const saved = localStorage.getItem('aqua_unlocked_badges');
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveUnlockedBadges(badges) {
+            try {
+                localStorage.setItem('aqua_unlocked_badges', JSON.stringify(badges));
+            } catch (e) {}
+        }
+
+        function getPlayCount() {
+            try {
+                const count = localStorage.getItem('aqua_play_count');
+                return count ? parseInt(count, 10) : 0;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function incrementPlayCount() {
+            try {
+                const count = getPlayCount() + 1;
+                localStorage.setItem('aqua_play_count', count.toString());
+                return count;
+            } catch (e) {
+                return 1;
+            }
+        }
+
+        // 배지 진열장 열기 및 목록 렌더링
+        function openBadgeModal() {
+            initAudio();
+            sounds.click();
+            renderBadgeGrid();
+            const modal = document.getElementById('badge-modal');
+            const panel = document.getElementById('badge-panel');
+            if (modal && panel) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    panel.classList.remove('scale-95', 'opacity-0');
+                    panel.classList.add('scale-100', 'opacity-100');
+                }, 50);
+            }
+        }
+
+        function closeBadgeModal() {
+            sounds.click();
+            const modal = document.getElementById('badge-modal');
+            const panel = document.getElementById('badge-panel');
+            if (modal && panel) {
+                panel.classList.remove('scale-100', 'opacity-100');
+                panel.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        let resetConfirmState = false;
+        let resetTimer = null;
+
+        function handleResetBadges(btn) {
+            sounds.warning();
+            if (!resetConfirmState) {
+                resetConfirmState = true;
+                btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation animate-pulse"></i> 정말 초기화할까요?`;
+                btn.classList.remove('bg-rose-950/40', 'border-rose-900/50', 'text-rose-400');
+                btn.classList.add('bg-rose-600', 'border-rose-500', 'text-white');
+                
+                resetTimer = setTimeout(() => {
+                    resetConfirmState = false;
+                    btn.innerHTML = `<i class="fa-solid fa-trash-can"></i> 배지 초기화`;
+                    btn.classList.remove('bg-rose-600', 'border-rose-500', 'text-white');
+                    btn.classList.add('bg-rose-950/40', 'border-rose-900/50', 'text-rose-400');
+                }, 3000);
+            } else {
+                clearTimeout(resetTimer);
+                resetConfirmState = false;
+                
+                // 로컬 스토리지 키 완전 제거 및 통계 0으로 세팅
+                localStorage.removeItem('aqua_unlocked_badges');
+                localStorage.setItem('aqua_play_count', '0');
+                
+                // 배지 보드 실시간 정화
+                renderBadgeGrid();
+                
+                // 오디오 성공 피드백 및 완료 상태 트랜지션
+                sounds.success();
+                btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> 초기화 완료`;
+                btn.classList.remove('bg-rose-600', 'border-rose-500', 'text-white');
+                btn.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+                
+                logToTerminal("[SYS] 배지 및 누적 플레이 기록이 안전하게 공장 초기화되었습니다.", "text-rose-500 font-bold");
+                
+                setTimeout(() => {
+                    btn.innerHTML = `<i class="fa-solid fa-trash-can"></i> 배지 초기화`;
+                    btn.classList.remove('bg-emerald-600', 'border-emerald-500', 'text-white');
+                    btn.classList.add('bg-rose-950/40', 'border-rose-900/50', 'text-rose-400');
+                }, 2000);
+            }
+        }
+
+        // 배지 진열장 상태 드로잉
+        function renderBadgeGrid() {
+            const grid = document.getElementById('badge-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const unlocked = getUnlockedBadges();
+
+            BADGES.forEach(badge => {
+                const isUnlocked = unlocked.includes(badge.id);
+                const card = document.createElement('div');
+                
+                if (isUnlocked) {
+                    card.className = "bg-slate-950/60 border border-sky-500/30 p-4 rounded-xl flex flex-col items-center text-center gap-2 transition-all hover:scale-105 hover:shadow-[0_0_15px_rgba(14,165,233,0.15)] relative overflow-hidden group";
+                    card.innerHTML = `
+                        <div class="absolute top-1.5 right-1.5 text-[8px] bg-sky-950/80 border border-sky-800 text-sky-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">UNLOCKED</div>
+                        <div class="w-14 h-14 rounded-full bg-sky-950/40 border border-sky-500/20 flex items-center justify-center text-2xl mb-1 shadow-[0_0_12px_rgba(14,165,233,0.2)]">
+                            <i class="${badge.icon}"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-100 tracking-wide">${badge.name}</h4>
+                        <p class="text-[10px] text-slate-400 leading-normal min-h-[30px] flex items-center justify-center">${badge.desc}</p>
+                        <span class="text-[9px] font-mono text-sky-500 mt-1 font-bold"><i class="fa-solid fa-circle-check mr-1"></i>${badge.condition}</span>
+                    `;
+                } else {
+                    card.className = "bg-slate-900/20 border border-slate-950 p-4 rounded-xl flex flex-col items-center text-center gap-2 opacity-50 relative filter grayscale select-none";
+                    card.innerHTML = `
+                        <div class="absolute top-1.5 right-1.5 text-[8px] bg-slate-950 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">LOCKED</div>
+                        <div class="w-14 h-14 rounded-full bg-slate-950 border border-slate-800 flex items-center justify-center text-2xl mb-1 text-slate-600">
+                            <i class="fa-solid fa-lock text-base"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-500 tracking-wide">${badge.name}</h4>
+                        <p class="text-[10px] text-slate-600 leading-normal min-h-[30px] flex items-center justify-center">${badge.desc}</p>
+                        <span class="text-[9px] font-mono text-slate-600 mt-1"><i class="fa-solid fa-circle-xmark mr-1"></i>잠김</span>
+                    `;
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        // 배지 잠금 해제 연산 및 라이트 알림 토스트 가동
+        function unlockBadge(badgeId) {
+            const unlocked = getUnlockedBadges();
+            if (unlocked.includes(badgeId)) return; // 이미 보유 중
+
+            unlocked.push(badgeId);
+            saveUnlockedBadges(unlocked);
+
+            // 알림 토스트 송출
+            const badge = BADGES.find(b => b.id === badgeId);
+            if (badge) {
+                showToast(badge);
+            }
+        }
+
+        // 고급 토스트 알림 창 시뮬레이션
+        function showToast(badge) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-900/95 border border-amber-500/40 p-4 rounded-xl shadow-2xl flex items-center gap-3 transform translate-y-4 opacity-0 transition-all duration-500 pointer-events-auto backdrop-blur-md";
+            toast.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-amber-950/40 border border-amber-500/30 flex items-center justify-center text-lg shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                    <i class="${badge.icon}"></i>
+                </div>
+                <div class="flex-grow space-y-0.5">
+                    <div class="text-[10px] font-mono text-amber-400 font-bold tracking-wider"><i class="fa-solid fa-award mr-1"></i>NEW BADGE UNLOCKED!</div>
+                    <h4 class="text-xs font-bold text-slate-100">${badge.name}</h4>
+                    <p class="text-[9px] text-slate-400 leading-tight">${badge.condition}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+
+            // 소리 재생
+            setTimeout(() => {
+                sounds.success();
+            }, 100);
+
+            // 슬라이드 인
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            }, 50);
+
+            // 4초 후 자동 아웃
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 500);
+            }, 4000);
+        }
+
+        // 공통 터미널 로그 출력 기능
+        function logToTerminal(text, className = 'text-slate-400') {
+            const ledger = document.getElementById('ledger-box');
+            if (ledger) {
+                const logEntry = document.createElement('div');
+                logEntry.className = className;
+                logEntry.innerText = text;
+                ledger.appendChild(logEntry);
+                ledger.scrollTop = ledger.scrollHeight;
+            }
+        }
+
+        // 게임 시작 프로토콜
+        function startGame() {
+            initAudio();
+            sounds.click();
+            
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('ending-screen').classList.add('hidden');
+            
+            const gameScreen = document.getElementById('game-screen');
+            gameScreen.classList.remove('hidden');
+            
+            // 상태 및 통계 변수 초기화
+            currentDay = 1;
+            water = 100;
+            isGameOver = false;
+            
+            spentStats = {
+                hygiene: 0,
+                kitchen: 0,
+                housework: 0,
+                others: 0
+            };
+
+            dayTiers = {}; // 날짜별 강도 기록 리셋
+
+            // 플로우 로그 초기 세팅
+            const ledger = document.getElementById('ledger-box');
+            ledger.innerHTML = `
+                <div class="text-sky-500">[SYS] 에코 모니터 기동 완료...</div>
+                <div class="text-sky-400">[SYS] 초기 수자원 100L 정상 로드.</div>
+            `;
+
+            // 기포 애니메이션 주입
+            createWaterBubbles();
+
+            updateUI();
+            loadScenario(1);
+        }
+
+        // 수조 내부 가스 기포 장식 생성기
+        function createWaterBubbles() {
+            const container = document.getElementById('tank-card');
+            // 기존 기포가 있다면 초기화
+            const existingBubbles = container.querySelectorAll('.bubble');
+            existingBubbles.forEach(b => b.remove());
+
+            for (let i = 0; i < 5; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                const size = Math.random() * 5 + 3;
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+                bubble.style.left = `${Math.random() * 70 + 15}%`;
+                bubble.style.bottom = '10%';
+                bubble.style.animationDelay = `${Math.random() * 4}s`;
+                bubble.style.animationDuration = `${Math.random() * 3 + 3}s`;
+                container.appendChild(bubble);
+            }
+        }
+
+        // UI 갱신 핵심 함수 구현
+        function updateUI() {
+            // 자원 한계 처리
+            if (water < 0) water = 0;
+            if (water > 100) water = 100;
+
+            // 헤더 물 사용량 / 일수 동적 동기화
+            const headerStatus = document.getElementById('header-status');
+            if (headerStatus) {
+                headerStatus.innerHTML = `${water}L / ${currentDay} DAYS`;
+            }
+
+            // 물 표기 갱신 (네온 블루 테마 최적화)
+            document.getElementById('water-display').innerHTML = `${water}<span class="text-lg text-sky-600 font-mono">L</span>`;
+            document.getElementById('tank-percent').innerText = `${water}%`;
+            
+            // 수조 파도 높이 CSS 조정
+            const waveBack = document.getElementById('water-wave-back');
+            const waveFront = document.getElementById('water-wave-front');
+            
+            waveBack.style.bottom = `${water}%`;
+            waveFront.style.bottom = `${water}%`;
+
+            // 탱크 임계치 경보 색상 점멸 연출
+            const tankCard = document.getElementById('tank-card');
+            if (water <= 25) {
+                tankCard.classList.add('border-rose-500/50', 'bg-rose-950/10', 'shadow-[0_0_15px_rgba(244,63,94,0.15)]');
+                tankCard.classList.remove('border-blue-950', 'bg-slate-900/40');
+            } else {
+                tankCard.classList.add('border-blue-950', 'bg-slate-900/40');
+                tankCard.classList.remove('border-rose-500/50', 'bg-rose-950/10', 'shadow-[0_0_15px_rgba(244,63,94,0.15)]');
+            }
+
+            // 날짜 뱃지 업데이트
+            const scene = scenario[currentDay];
+            document.getElementById('day-badge').innerText = `${scene ? scene.dayName : 'DAY ' + currentDay} / 10`;
+
+            // 상단 일수 경과 타임라인 드로잉
+            drawTimeline();
+        }
+
+        // 타임라인 상단 도트 바 시각화 (날짜별 선택한 소비 강도에 따른 네온 라이팅 반영)
+        function drawTimeline() {
+            const holder = document.getElementById('timeline-steps');
+            if (!holder) return;
+            holder.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const step = document.createElement('span');
+                
+                if (dayTiers[i]) {
+                    // 선택 완료된 날짜: 소비한 물의 양(티어)에 따라 파란색/노란색/빨간색 테마 부여
+                    if (dayTiers[i] === 'high') {
+                        // 빨간색 고소모 (15L ~ 25L)
+                        step.className = "w-2.5 h-2.5 rounded-full bg-rose-500 border border-rose-400 shadow-[0_0_8px_#f43f5e]";
+                    } else if (dayTiers[i] === 'medium') {
+                        // 노란색 중소모 (10L ~ 15L)
+                        step.className = "w-2.5 h-2.5 rounded-full bg-yellow-500 border border-yellow-400 shadow-[0_0_8px_#eab308]";
+                    } else {
+                        // 파란색 저소모 (1L ~ 5L)
+                        step.className = "w-2.5 h-2.5 rounded-full bg-sky-500 border border-sky-400 shadow-[0_0_8px_#0ea5e9]";
+                    }
+                } else if (i === currentDay) {
+                    // 현재 진행 중인 액티브 데이: 부드러운 백색 고주파 펄스
+                    step.className = "w-2.5 h-2.5 rounded-full bg-slate-300 border border-white animate-pulse shadow-[0_0_8px_#ffffff]";
+                } else {
+                    // 아직 방문하지 않은 미래 일차
+                    step.className = "w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700";
+                }
+                holder.appendChild(step);
+            }
+        }
+
+        // 선지 출력 및 셔플 렌더링 함수 (선택지가 완벽히 작동하도록 즉각 복구 완료)
+        function loadScenario(day) {
+            const currentScene = scenario[day];
+            if (!currentScene) return;
+
+            // 날짜 기록 갱신
+            document.getElementById('log-time').innerText = `${currentScene.dayName} - 08:00 AM`;
+            
+            // 타이틀 및 내용 설정 (블루 네온 연출)
+            const storyText = document.getElementById('story-text');
+            storyText.innerHTML = `<span class="text-sky-400 font-bold block mb-1.5">[ 오늘의 위생 및 수자원 활동 과제 ]</span>${currentScene.situation}`;
+            
+            // 선택지 홀더 클리어 및 마운트
+            const container = document.getElementById('choice-container');
+            container.innerHTML = '';
+
+            // 기존 선택지 데이터를 얕은 복사한 후, 무작위로 섞는 Fisher-Yates 알고리즘 수행
+            const shuffledChoices = [...currentScene.choices];
+            for (let i = shuffledChoices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledChoices[i], shuffledChoices[j]] = [shuffledChoices[j], shuffledChoices[i]];
+            }
+
+            shuffledChoices.forEach((choice, index) => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left bg-slate-950/40 hover:bg-slate-900/60 border border-blue-950 hover:border-sky-500/50 p-4 rounded-xl text-xs md:text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(14,165,233,0.08)] group flex justify-between items-center gap-4";
+                
+                button.onclick = () => handleChoice(choice);
+
+                button.innerHTML = `
+                    <span class="text-slate-300 group-hover:text-slate-100 transition-colors leading-relaxed">
+                        <strong class="text-sky-400 font-mono mr-1">PLAN ${index + 1}.</strong> ${choice.text}
+                    </span>
+                    <span class="text-slate-600 group-hover:text-sky-400 transition-colors text-xs font-mono"><i class="fa-solid fa-angle-right"></i></span>
+                `;
+                container.appendChild(button);
+            });
+        }
+
+        // 유저 선택 결과 연산 및 피드백 처리
+        function handleChoice(choice) {
+            sounds.click();
+            
+            // 리소스 변동 적용
+            water += choice.water;
+
+            // 오늘의 선택 강도 티어('high'/'medium'/'low')를 기록
+            dayTiers[currentDay] = choice.tier;
+
+            // 계측 카테고리별 누적합 연산 및 실시간 수류 로그 기록 등록
+            const scene = scenario[currentDay];
+            const absWater = Math.abs(choice.water);
+            
+            if (scene && scene.category) {
+                spentStats[scene.category] += absWater;
+            }
+
+            // 실시간 플로우 로그 렌더링 업데이트
+            let logColor = "text-slate-400";
+            if (choice.tier === 'high') logColor = "text-red-400 font-bold";
+            else if (choice.tier === 'medium') logColor = "text-yellow-400";
+            else logColor = "text-blue-400";
+
+            logToTerminal(`[DAY ${currentDay}] -${absWater}.0L 유출 [${scene ? scene.categoryKo : '기타'}]`, logColor);
+
+            // 물 감소치 음수 양수 텍스트 연출 및 동적 색상 변화
+            const waterChangeBadge = document.getElementById('water-change-badge');
+            waterChangeBadge.innerText = `${choice.water} L`;
+            
+            if (choice.tier === 'high') {
+                sounds.warning();
+                waterChangeBadge.className = "px-3 py-1 bg-red-950/80 text-red-500 border border-red-800/50 rounded-lg text-sm font-digital animate-bounce font-bold";
+                triggerScreenShake();
+            } else if (choice.tier === 'medium') {
+                waterChangeBadge.className = "px-3 py-1 bg-yellow-950/80 text-yellow-400 border border-yellow-800/50 rounded-lg text-sm font-digital font-bold";
+            } else {
+                waterChangeBadge.className = "px-3 py-1 bg-blue-950 text-blue-400 border border-blue-800/50 rounded-lg text-sm font-digital font-bold";
+            }
+
+            // 모달 데이터 바인딩
+            document.getElementById('modal-title').innerText = `${scene.dayName} 활동 결과 분석`;
+            document.getElementById('modal-desc').innerText = choice.desc;
+            document.getElementById('modal-fact').innerText = choice.fact;
+
+            // UI 즉각 동기화 (새로운 타임라인 색상이 모달 뒤로 즉시 노출됨)
+            updateUI();
+
+            // 다음 진행 처리 바인딩
+            const nextBtn = document.getElementById('modal-next-btn');
+            nextBtn.onclick = () => {
+                closeFeedbackModal();
+                processNextStep();
+            };
+
+            openFeedbackModal();
+        }
+
+        // 화면 진동 연출 및 모달 여닫기 제어
+        function triggerScreenShake() {
+            const target = document.getElementById('game-screen');
+            if (target) {
+                target.classList.add('shake-active');
+                setTimeout(() => {
+                    target.classList.remove('shake-active');
+                }, 500);
+            }
+        }
+
+        function openFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            const panel = document.getElementById('modal-panel');
+            
+            if (modal && panel) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    panel.classList.remove('scale-95', 'opacity-0');
+                    panel.classList.add('scale-100', 'opacity-100');
+                }, 50);
+            }
+        }
+
+        function closeFeedbackModal() {
+            sounds.click();
+            const modal = document.getElementById('feedback-modal');
+            const panel = document.getElementById('modal-panel');
+            
+            if (modal && panel) {
+                panel.classList.remove('scale-100', 'opacity-100');
+                panel.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        // 생존 진행 단계 결정 로직
+        function processNextStep() {
+            if (water <= 0) {
+                triggerEnding(false);
+                return;
+            }
+
+            if (currentDay < 10) {
+                currentDay++;
+                updateUI();
+                loadScenario(currentDay);
+            } else {
+                triggerEnding(true);
+            }
+        }
+
+        // 엔딩 연출 로직 설계 (부문별 수자원 분석 그래프 및 AI 진단 처방 포함)
+        function triggerEnding(isSuccess) {
+            isGameOver = true;
+
+            document.getElementById('game-screen').classList.add('hidden');
+            
+            const endingScreen = document.getElementById('ending-screen');
+            endingScreen.classList.remove('hidden');
+
+            const iconBox = document.getElementById('ending-icon');
+            const title = document.getElementById('ending-title');
+            const desc = document.getElementById('ending-desc');
+
+            // 자원 등급 랭크 산출
+            let rank = "F";
+            let rankColor = "text-rose-500";
+            if (isSuccess) {
+                if (water >= 50) {
+                    rank = "S (완벽한 아쿠아 세이버 마스터)";
+                    rankColor = "text-sky-400";
+                } else if (water >= 30) {
+                    rank = "A (모범적인 현대 친환경 시민)";
+                    rankColor = "text-sky-400";
+                } else if (water >= 15) {
+                    rank = "B (일반적인 평범한 절수자)";
+                    rankColor = "text-cyan-400";
+                } else {
+                    rank = "C (간신히 턱걸이 생존)";
+                    rankColor = "text-orange-400";
+                }
+            }
+
+            // 통계 표기 갱신
+            document.getElementById('final-water').innerText = `${water} L`;
+            const rankEl = document.getElementById('final-rank');
+            rankEl.innerText = rank;
+            rankEl.className = `${rankColor} font-bold`;
+
+            const survivalRow = document.getElementById('survival-day-row');
+            const survivalDayEl = document.getElementById('final-survival-day');
+
+            // 부문별 바 차트 렌더링 및 통계값 매핑
+            const hygieneTotal = spentStats.hygiene;
+            const kitchenTotal = spentStats.kitchen;
+            const houseworkTotal = spentStats.housework;
+            const othersTotal = spentStats.others;
+            const totalSpent = hygieneTotal + kitchenTotal + houseworkTotal + othersTotal || 1; // 0 분모 에러 방지
+
+            // 텍스트 기재
+            document.getElementById('spent-hygiene-val').innerText = `${hygieneTotal}L`;
+            document.getElementById('spent-kitchen-val').innerText = `${kitchenTotal}L`;
+            document.getElementById('spent-housework-val').innerText = `${houseworkTotal}L`;
+            document.getElementById('spent-others-val').innerText = `${othersTotal}L`;
+
+            // 바 너비 조절 애니메이션 연계
+            setTimeout(() => {
+                document.getElementById('spent-hygiene-bar').style.width = `${(hygieneTotal / totalSpent) * 100}%`;
+                document.getElementById('spent-kitchen-bar').style.width = `${(kitchenTotal / totalSpent) * 100}%`;
+                document.getElementById('spent-housework-bar').style.width = `${(houseworkTotal / totalSpent) * 100}%`;
+                document.getElementById('spent-others-bar').style.width = `${(othersTotal / totalSpent) * 100}%`;
+            }, 300);
+
+            // 최악의 소비 부문 찾기 및 멘토 피드백 제공
+            let worstCategory = "";
+            let maxSpent = -1;
+            
+            for (const [key, value] of Object.entries(spentStats)) {
+                if (value > maxSpent) {
+                    maxSpent = value;
+                    worstCategory = key;
+                }
+            }
+
+            let worstAdvice = "";
+            if (worstCategory === "hygiene") {
+                worstAdvice = "귀하는 <strong class='text-sky-400'>'위생 및 세면'</strong> 부문에서 가장 비효율적인 수량 감폭을 겪었습니다. 샤워 시 바가지를 준비하고 세면 대접에 미리 물을 가둔 채 수동 수전을 완수하는 클래식한 가둠법을 마스터하여 유출 방어력을 개선하십시오.";
+            } else if (worstCategory === "kitchen") {
+                worstAdvice = "귀하는 <strong class='text-sky-400'>'주방 및 식사'</strong> 과정에서 수자원을 가장 대량으로 유실했습니다. 설거지나 채소 세척 시 수도를 계속 켜둔 채 세정하는 버릇을 버리고, 반드시 '기름 마른천 흡착' 및 '가둠 불림' 구조를 주도적으로 도입하십시오.";
+            } else if (worstCategory === "housework") {
+                worstAdvice = "귀하는 <strong class='text-sky-400'>'의류/가사 청소'</strong> 부문에서 통제력을 잃었습니다. 기계가 보정 가동하며 뿌려대는 직수 물폭탄과 드럼 스프레이 헹굼의 숨겨진 유실 압력이 주범입니다. 빨래를 끝까지 한 번에 모아서 돌리십시오.";
+            } else {
+                worstAdvice = "귀하는 <strong class='text-sky-400'>'수분 섭취/기타'</strong> 영역의 세는 물을 다잡지 못했습니다. 미지근한 대기 유량을 하수구에 미리 흘려버려 찬물을 빼거나, RO 필터가 버리는 폐수의 실태를 간과한 점이 요인입니다. 상온 수돗물 수납 음용을 생활화하십시오.";
+            }
+
+            document.getElementById('ending-advice').innerHTML = worstAdvice;
+
+            // 성공/실패 텍스트 커스터마이징
+            if (isSuccess) {
+                sounds.success();
+                survivalRow.classList.add('hidden');
+                iconBox.innerHTML = '<i class="fa-solid fa-droplet text-sky-400"></i>';
+                iconBox.className = "w-20 h-20 rounded-full bg-sky-950/50 border border-sky-500/30 flex items-center justify-center text-4xl shadow-2xl animate-bounce";
+                title.innerHTML = '챌린지 결과: <span class="text-sky-400 font-sans">AQUA SAVING 완주 성공</span>';
+                desc.innerHTML = `
+                    축하합니다! 당신은 대기업의 교묘한 그린워싱 마케팅 함정과 무의식적인 과도 위생 강박을 철저한 팩트 체크와 과학적 지혜로 극복하고, 10일간 100L의 한계선 내에서 일상을 멋지게 완주해 냈습니다.<br><br>
+                    우리가 편리함 혹은 청결이라는 이름으로 자행하던 물 낭비 관성(센서 수전의 오작동, 소량 식세기 구동, 기포 샤워기의 헹굼 지연 등)을 인지하는 것만으로도 미래 자원의 보존율은 기하급수적으로 높아집니다.<br>
+                    <strong class="text-sky-400">당신이 가상 대시보드에서 증명해 낸 논리적인 가치관은, 실제 지구의 유한한 물을 보존하는 가장 실용적이고 고결한 습관이 될 것입니다.</strong>
+                `;
+            } else {
+                sounds.fail();
+                survivalRow.classList.remove('hidden');
+                survivalDayEl.innerText = `DAY ${currentDay}`;
+                iconBox.innerHTML = '<i class="fa-solid fa-droplet-slash text-rose-400"></i>';
+                iconBox.className = "w-20 h-20 rounded-full bg-rose-950/50 border border-rose-500/30 flex items-center justify-center text-4xl shadow-2xl";
+                title.innerHTML = `챌린지 결과: <span class="text-rose-500 font-sans">수자원 전량 고갈 (DAY ${currentDay}차 실패)</span>`;
+                desc.innerHTML = `
+                    안타깝습니다! 10일의 생존 기간 중 <strong class="text-rose-400">DAY ${currentDay}</strong>차에 당신의 주거지에 가용되었던 소중한 100L의 수위 탱크가 전량 바닥을 드러내고 말았습니다.<br><br>
+                    "물 틀어놓고 얼굴 비비기", "뜨거운 물로 계속 헹구는 설거지", "옷 한 벌 세탁기 표준 작동" 등, '청결'과 '편리함' 뒤에 숨겨진 우리의 아주 사소하고 일상적인 습관들이 사실은 가장 큰 낭비를 부르는 주범이었습니다.<br>
+                    <strong class="text-rose-400">이번 고갈 경험을 바탕으로, 편리한 제품 광고와 무심한 일상 행동 이면에 감춰진 수자원의 소중한 실체를 눈으로 확인하는 귀중한 계기가 되길 바랍니다.</strong>
+                `;
+            }
+
+            // 플레이 횟수 증가 연산
+            const currentPlayCount = incrementPlayCount();
+
+            // 1. 초보 세이버 잠금해제 (완주 1회)
+            unlockBadge('beginner');
+
+            // 2. 사막의 선인장 잠금해제 (완전 고갈 실패)
+            if (!isSuccess) {
+                unlockBadge('cactus');
+            }
+
+            // 3. 아쿠아 가디언 잠금해제 (S등급 성공)
+            if (isSuccess && water >= 50) {
+                unlockBadge('guardian');
+            }
+
+            // 4. 물방울 예술가 잠금해제 (저소모 선택 5회 이상)
+            const lowCount = Object.values(dayTiers).filter(t => t === 'low').length;
+            if (lowCount >= 5) {
+                unlockBadge('artist');
+            }
+
+            // 5. 완전 무결 생존 잠금해제 (고소모 선택 0회)
+            const highCount = Object.values(dayTiers).filter(t => t === 'high').length;
+            if (highCount === 0) {
+                unlockBadge('perfect');
+            }
+
+            // 6. 현실 팩트 추적자 잠금해제 (완주 3회 이상)
+            if (currentPlayCount >= 3) {
+                unlockBadge('tracer');
+            }
+        }
+
+        // 재시작 초기화 프로토콜
+        function resetGame() {
+            sounds.click();
+            document.getElementById('ending-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden');
+        }
+
+        // 초기 기동 프로토콜 마운트
+        window.onload = function () {
+            // 초기 환경설정 완료 상태 대기
+        }
+    </script>
+</body>
+</html>

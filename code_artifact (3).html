@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중소 대행사 생존기 - 대기업의 방해!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+        /* Custom game container shadows */
+        .game-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), inset 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+        /* Neon glowing effect for active components */
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); /* Red for harder mode */
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-red-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800 py-3 px-6 flex justify-between items-center z-10">
+        <div class="flex items-center space-x-3">
+            <div class="bg-red-600 text-white p-2 rounded-lg neon-glow">
+                <i class="fa-solid fa-rectangle-ad text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-sm md:text-base font-bold text-white tracking-wide">인하우스 & 중소 대행사 생존기 <span class="text-xs text-red-400">[HARDCORE]</span></h1>
+                <p class="text-xs text-slate-400">Project Pitching: Survival</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span class="text-xs md:text-sm bg-slate-800/50 px-3 py-1 rounded-full text-slate-300 border border-slate-700">
+                <i class="fa-solid fa-keyboard mr-1"></i> ← / → 키로 이동
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Game Section -->
+    <main class="flex-grow flex flex-col justify-center items-center px-4 py-6 relative">
+        <div class="w-full max-w-lg bg-slate-800 rounded-2xl overflow-hidden border-2 border-slate-700 game-shadow relative flex flex-col">
+            
+            <!-- Game HUD (Top bar) -->
+            <div class="bg-slate-800/90 border-b border-slate-700 px-4 py-3 flex justify-between items-center z-10">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-400 font-semibold">목표 수주액:</span>
+                    <span class="text-sm font-black text-blue-400">20억 / 20억</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-400 font-semibold">현재 실적:</span>
+                    <span id="scoreDisplay" class="text-lg font-black text-red-400 bg-red-400/10 px-3 py-0.5 rounded-full border border-red-400/30">0건</span>
+                </div>
+            </div>
+
+            <!-- Game Canvas & Interactive Overlay Container -->
+            <div class="relative flex-grow bg-slate-950" style="height: 480px;">
+                <canvas id="gameCanvas" class="block w-full h-full"></canvas>
+
+                <!-- 1. START OVERLAY -->
+                <div id="startOverlay" class="absolute inset-0 bg-slate-950/95 flex flex-col justify-center items-center text-center p-6 z-20 transition-opacity duration-300">
+                    <div class="bg-gradient-to-br from-red-500 to-amber-600 text-white p-4 rounded-3xl mb-4 shadow-lg animate-bounce">
+                        <i class="fa-solid fa-fire text-4xl"></i>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-black text-white mb-2 leading-tight">
+                        하드코어!<br>대행사 <span class="text-red-400">김대리</span>의 생존기
+                    </h2>
+                    <p class="text-xs md:text-sm text-slate-300 max-w-xs mb-6">
+                        "야근은 기본! 떨어지는 <span class="text-red-300 font-bold">'광고건' 글자들</span>을 신속하게 수주하세요! <span class="text-yellow-400 font-bold">10점 도달 시 거대한 대기업 광고 방해물이 눈앞을 가립니다!</span> 단 한 건만 놓쳐도 바로 탈락입니다!"
+                    </p>
+                    
+                    <button id="startBtn" class="bg-gradient-to-r from-red-500 to-amber-600 hover:from-red-600 hover:to-amber-700 text-white font-extrabold text-lg px-8 py-3.5 rounded-xl shadow-lg shadow-red-500/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center space-x-3">
+                        <i class="fa-solid fa-play"></i>
+                        <span>죽음의 피칭 시작하기</span>
+                    </button>
+                    
+                    <div class="mt-8 text-xs text-slate-500 space-y-1">
+                        <p>🖥️ PC: 키보드 좌우 방향키 [←] [→]</p>
+                        <p>📱 Mobile: 화면 좌우 하단 패드 터치</p>
+                    </div>
+                </div>
+
+                <!-- 2. GAME CLEAR OVERLAY -->
+                <div id="clearOverlay" class="absolute inset-0 bg-slate-950/95 flex flex-col justify-center items-center text-center p-6 z-20 hidden transition-opacity duration-300">
+                    <div class="bg-blue-400 text-slate-900 p-4 rounded-full mb-4 shadow-lg animate-pulse">
+                        <i class="fa-solid fa-crown text-4xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-black text-blue-400 mb-1">PROMOTION!</h2>
+                    <h3 class="text-2xl font-bold text-white mb-3">20억 수주 대성공!</h3>
+                    <p class="text-sm text-slate-300 max-w-xs mb-6">
+                        축하합니다! 대기업의 방해 공작을 뚫어내고 수주전을 이겨냈습니다! 이제 대기업이 광고를 부탁하는 전설의 중소 광고 대행사가 되었습니다! 🎉
+                    </p>
+                    <button id="restartBtn_clear" class="bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 text-slate-900 font-extrabold text-lg px-8 py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center space-x-3">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>다시 전설 되기</span>
+                    </button>
+                </div>
+
+                <!-- 3. GAME OVER OVERLAY (Failed) -->
+                <div id="failOverlay" class="absolute inset-0 bg-slate-950/95 flex flex-col justify-center items-center text-center p-6 z-20 hidden transition-opacity duration-300">
+                    <div class="bg-red-600 text-white p-4 rounded-full mb-4 shadow-lg animate-pulse">
+                        <i class="fa-solid fa-user-xmark text-4xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-black text-red-400 mb-1">CONTRACT TERMINATED</h2>
+                    <h3 class="text-2xl font-bold text-white mb-3">실적 미달! 계약 해지!</h3>
+                    <p class="text-sm text-slate-300 max-w-xs mb-6">
+                        "미안하지만 김대리... 대기업 방해가 있더라도 단 하나의 브리프도 놓쳐선 안 된다고 했잖아요... 다음 기회를 기약해야겠어요." (최종 점수: <span id="failScore" class="font-bold text-red-300">0억</span>)
+                    </p>
+                    <button id="restartBtn_fail" class="bg-gradient-to-r from-red-500 to-amber-600 hover:from-red-600 hover:to-amber-700 text-white font-extrabold text-lg px-8 py-3.5 rounded-xl shadow-lg shadow-red-500/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 flex items-center space-x-3">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>재입사 지원하기</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Virtual Controllers -->
+            <div class="bg-slate-900 px-4 py-4 flex justify-between items-center border-t border-slate-700 md:hidden">
+                <button id="btnLeft" class="w-24 py-4 bg-slate-800 active:bg-red-600 text-white rounded-xl flex justify-center items-center border border-slate-700 transition-colors duration-100 select-none">
+                    <i class="fa-solid fa-caret-left text-2xl"></i>
+                </button>
+                <div class="text-xs text-slate-500 font-semibold">모바일 패드</div>
+                <button id="btnRight" class="w-24 py-4 bg-slate-800 active:bg-red-600 text-white rounded-xl flex justify-center items-center border border-slate-700 transition-colors duration-100 select-none">
+                    <i class="fa-solid fa-caret-right text-2xl"></i>
+                </button>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-4 bg-slate-950 border-t border-slate-800 text-xs text-slate-500">
+        <p>© 2026 Inhouse-Hardcore Game Studio. All rights reserved.</p>
+    </footer>
+
+    <!-- Game Logic -->
+    <script>
+        // Web Audio API Sound Generator (No external file dependencies!)
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'catch') {
+                // Catch item sound (Satisfying high-pitched synthetic chime)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now); // A4
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'fail') {
+                // Dissapointing low-pitch buzzer sound for missed ad briefs
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now); // Low pitch
+                osc.frequency.linearRampToValueAtTime(60, now + 0.5); 
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'alert') {
+                // Warning sound for Conglomerate Entry
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(330, now);
+                osc.frequency.linearRampToValueAtTime(440, now + 0.15);
+                osc.frequency.linearRampToValueAtTime(330, now + 0.3);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'win') {
+                // Happy celebration fanfare!
+                const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+                notes.forEach((freq, idx) => {
+                    const noteOsc = audioCtx.createOscillator();
+                    const noteGain = audioCtx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(audioCtx.destination);
+                    
+                    noteOsc.type = 'triangle';
+                    noteOsc.frequency.setValueAtTime(freq, now + (idx * 0.12));
+                    noteGain.gain.setValueAtTime(0.1, now + (idx * 0.12));
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.12) + 0.25);
+                    
+                    noteOsc.start(now + (idx * 0.12));
+                    noteOsc.stop(now + (idx * 0.12) + 0.25);
+                });
+            }
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Setting default internal dimensions
+        const CANVAS_WIDTH = 480;
+        const CANVAS_HEIGHT = 640;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        let gameState = 'START'; // START, PLAYING, CLEAR, FAIL
+        let score = 0;
+        const targetScore = 20; 
+        let alertPlayedOnce = false;
+        
+        let keys = { Left: false, Right: false };
+        let activeTouch = { Left: false, Right: false };
+
+        // Ad Categories
+        const adTypes = [
+            { label: 'SNS 바이럴', color: '#ec4899', text: 'SNS' },      // Pink
+            { label: '네이버 검색', color: '#10b981', text: 'SA' },       // Emerald
+            { label: '유튜브 광고', color: '#ef4444', text: 'YT' },       // Red
+            { label: 'TV CF', color: '#3b82f6', text: 'CF' },           // Blue
+            { label: 'DA 배너', color: '#8b5cf6', text: 'DA' }          // Purple
+        ];
+
+        const player = {
+            width: 70,
+            height: 90,
+            x: CANVAS_WIDTH / 2 - 35,
+            y: CANVAS_HEIGHT - 120,
+            speed: 13.5, // 광고건 속도 상향에 맞춰 플레이어 이동 속도 증가 (기존 10.5)
+            facingLeft: false,
+            sweatTimer: 0,
+            walkCycle: 0,
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                
+                // Flip horizontally if facing left
+                if (this.facingLeft) {
+                    ctx.scale(-1, 1);
+                }
+
+                const bounce = Math.sin(this.walkCycle) * 3;
+
+                // 1. Briefcase/Folder to catch elements
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(-35, -45 + bounce, 70, 14);
+                // Handle bar
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(-20, -50 + bounce, 40, 6);
+                // Papers peeking
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(-28, -52 + bounce, 12, 10);
+                ctx.fillRect(-10, -54 + bounce, 15, 10);
+                ctx.fillStyle = '#ef4444'; 
+                ctx.fillRect(10, -51 + bounce, 10, 8);
+
+                // 2. Character Body (Suit)
+                ctx.fillStyle = '#1e3a8a';
+                ctx.beginPath();
+                ctx.roundRect(-20, -20 + bounce, 40, 45, [10, 10, 0, 0]);
+                ctx.fill();
+
+                // 3. Shirt & Red Tie
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(-8, -20 + bounce);
+                ctx.lineTo(8, -20 + bounce);
+                ctx.lineTo(0, -8 + bounce);
+                ctx.closePath();
+                ctx.fill();
+
+                // Tie
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.moveTo(-3, -10 + bounce);
+                ctx.lineTo(3, -10 + bounce);
+                let tieSwing = 0;
+                if (keys.Left || activeTouch.Left) tieSwing = 6;
+                if (keys.Right || activeTouch.Right) tieSwing = -6;
+                ctx.lineTo(0 + tieSwing, 10 + bounce);
+                ctx.lineTo(-2 + tieSwing, 12 + bounce);
+                ctx.closePath();
+                ctx.fill();
+
+                // 4. Arms
+                ctx.strokeStyle = '#1e3a8a';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(-18, -10 + bounce);
+                ctx.lineTo(-28, -35 + bounce);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(18, -10 + bounce);
+                ctx.lineTo(28, -35 + bounce);
+                ctx.stroke();
+
+                // Hands
+                ctx.fillStyle = '#fbcfe8';
+                ctx.beginPath();
+                ctx.arc(-28, -37 + bounce, 4, 0, Math.PI * 2);
+                ctx.arc(28, -37 + bounce, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 5. Head
+                ctx.fillStyle = '#fbcfe8';
+                ctx.beginPath();
+                ctx.arc(0, -28 + bounce, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes (STRESSED pupils)
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.arc(-5, -28 + bounce, 1.5, 0, Math.PI * 2);
+                ctx.arc(5, -28 + bounce, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                // Eyebrows
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-9, -34 + bounce);
+                ctx.lineTo(-2, -31 + bounce);
+                ctx.moveTo(9, -34 + bounce);
+                ctx.lineTo(2, -31 + bounce);
+                ctx.stroke();
+
+                // Mouth
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, -22 + bounce, 4, 0, Math.PI, true);
+                ctx.stroke();
+
+                // Sweating effect
+                if (Math.sin(this.sweatTimer) > 0.3) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(-16, -24 + bounce, 2, 0, Math.PI * 2);
+                    ctx.arc(17, -27 + bounce, 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 6. ID Card
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(5, 5 + bounce, 8, 10);
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(5, 5 + bounce, 8, 3);
+
+                // 7. Feet
+                ctx.fillStyle = '#0f172a';
+                let leftFootY = 22 + bounce;
+                let rightFootY = 22 + bounce;
+                if (keys.Left || keys.Right || activeTouch.Left || activeTouch.Right) {
+                    leftFootY += Math.sin(this.walkCycle * 2) * 5;
+                    rightFootY += Math.cos(this.walkCycle * 2) * 5;
+                }
+                ctx.fillRect(-14, leftFootY, 10, 6);
+                ctx.fillRect(4, rightFootY, 10, 6);
+
+                ctx.restore();
+            },
+            
+            update() {
+                let moving = false;
+                if (keys.Left || activeTouch.Left) {
+                    this.x -= this.speed;
+                    this.facingLeft = true;
+                    moving = true;
+                }
+                if (keys.Right || activeTouch.Right) {
+                    this.x += this.speed;
+                    this.facingLeft = false;
+                    moving = true;
+                }
+
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > CANVAS_WIDTH) this.x = CANVAS_WIDTH - this.width;
+
+                this.sweatTimer += 0.08;
+                if (moving) {
+                    this.walkCycle += 0.35;
+                } else {
+                    this.walkCycle = 0;
+                }
+            }
+        };
+
+        let ads = [];
+        let spawnTimer = 0;
+        const spawnInterval = 40; // 더 쉴 새 없이 떨어지도록 생성 간격 단축 (기존 55)
+
+        class AdBrief {
+            constructor() {
+                const config = adTypes[Math.floor(Math.random() * adTypes.length)];
+                this.x = Math.random() * (CANVAS_WIDTH - 80) + 40;
+                this.y = -30;
+                this.radius = 28; // Hitbox radius
+                this.speed = Math.random() * 5 + 11.5; // 광고건 속도 대폭 상향! (기존 Math.random() * 3 + 6.0)
+                this.color = config.color;
+                this.label = config.label;
+                this.text = "광고건"; 
+                this.subtext = config.text; 
+                this.spinAngle = 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const wobble = Math.sin(this.spinAngle) * 0.15;
+                ctx.rotate(wobble);
+
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 15;
+
+                // Text Card Background
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.roundRect(-36, -18, 72, 36, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+
+                // Primary Text "광고건"
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 15px "Noto Sans KR"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.text, 0, -4);
+
+                // Category Tag
+                ctx.fillStyle = this.color;
+                ctx.font = 'bold 9px "Noto Sans KR"';
+                ctx.fillText(this.subtext, 0, 11);
+
+                ctx.restore();
+            }
+
+            update() {
+                this.y += this.speed;
+                this.spinAngle += 0.05;
+            }
+        }
+
+        class ConglomerateObstacle {
+            constructor() {
+                this.width = 310; // 기존 240에서 310으로 크기 대폭 상향 (화면의 약 65% 차지)
+                this.height = 190; // 기존 150에서 190으로 높이 상향
+                this.x = (CANVAS_WIDTH - this.width) / 2;
+                this.y = 150;
+                this.vx = 5.0; // 기존 2.5에서 5.0으로 속도 2배 상향
+                this.vy = 4.2; // 기존 1.8에서 4.2로 속도 대폭 상향
+                this.glowColor = '#f59e0b'; // Dynamic Golden/Orange Neon glow for major company
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wall collision bounce
+                if (this.x <= 0 || this.x + this.width >= CANVAS_WIDTH) {
+                    this.vx *= -1;
+                }
+                // Vertical bounds to keep player action visible but heavily mask falling items
+                if (this.y <= 60 || this.y + this.height >= CANVAS_HEIGHT - 140) {
+                    this.vy *= -1;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Outer Gold/Amber Glow to indicate massive scale
+                ctx.shadowColor = this.glowColor;
+                ctx.shadowBlur = 22;
+
+                // Semi-transparent dark corporate glassmorphism board
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'; // Transparent Slate 900
+                ctx.strokeStyle = this.glowColor;
+                ctx.lineWidth = 4;
+
+                ctx.beginPath();
+                ctx.roundRect(0, 0, this.width, this.height, 12);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.shadowBlur = 0; // Clear text rendering
+
+                // Warning line
+                ctx.fillStyle = '#ef4444';
+                ctx.font = '900 12px "Noto Sans KR"';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ WARNING: MARKET MONOPOLY', this.width / 2, 35);
+
+                // Main Obstructive text "대기업 광고"
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 24px "Noto Sans KR"';
+                ctx.fillText('대기업 광고', this.width / 2, 72);
+
+                // Subtitle
+                ctx.fillStyle = '#eab308';
+                ctx.font = 'bold 12px "Noto Sans KR"';
+                ctx.fillText('[ 자본 공세로 시야 방해 중 ]', this.width / 2, 104);
+
+                // Decorative laser bottom lines
+                ctx.strokeStyle = 'rgba(234, 179, 8, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(20, 120);
+                ctx.lineTo(this.width - 20, 120);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        const largeObstacle = new ConglomerateObstacle();
+
+        let particles = [];
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 2 + 1.5;
+                this.vx = (Math.random() - 0.5) * 7;
+                this.vy = (Math.random() - 0.5) * 7 - 3;
+                this.alpha = 1;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.05 + 0.03;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.15;
+                this.alpha -= this.decay;
+                this.life -= this.decay;
+            }
+        }
+
+        let catchTexts = [];
+
+        class CatchText {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.alpha = 1;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.font = 'extrabold 13px "Noto Sans KR"';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#000000';
+                ctx.shadowBlur = 4;
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+
+            update() {
+                this.y -= 2.0;
+                this.alpha -= 0.03;
+            }
+        }
+
+        function checkCollisions() {
+            for (let i = ads.length - 1; i >= 0; i--) {
+                const ad = ads[i];
+                const trayY = player.y - 10; 
+                
+                const catchMarginLeft = -10;
+                const catchMarginRight = player.width + 10;
+                
+                if (
+                    ad.y + 18 >= trayY && 
+                    ad.y - 18 <= player.y + 20 &&
+                    ad.x + ad.radius >= player.x + catchMarginLeft && 
+                    ad.x - ad.radius <= player.x + catchMarginRight
+                ) {
+                    // CATCH SUCCESS!
+                    playSound('catch');
+                    
+                    for (let p = 0; p < 18; p++) {
+                        particles.push(new Particle(ad.x, ad.y, ad.color));
+                    }
+
+                    catchTexts.push(new CatchText(ad.x, ad.y - 20, `+1억 (${ad.label})`, ad.color));
+                    ads.splice(i, 1);
+
+                    score++;
+                    updateHUD();
+
+                    if (score >= targetScore) {
+                        endGame('win');
+                    }
+                } else if (ad.y - 18 > CANVAS_HEIGHT) {
+                    // Missed: Touch the floor
+                    score--; 
+                    updateHUD();
+                    ads.splice(i, 1);
+
+                    if (score < 0) {
+                        endGame('fail'); // Immediate termination
+                    } else {
+                        playSound('fail'); 
+                        for (let p = 0; p < 10; p++) {
+                            particles.push(new Particle(ad.x, CANVAS_HEIGHT - 35, '#ef4444'));
+                        }
+                        catchTexts.push(new CatchText(ad.x, CANVAS_HEIGHT - 50, `-1억 (수주 실패!)`, '#ef4444'));
+                    }
+                }
+            }
+        }
+
+        function updateHUD() {
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            scoreDisplay.innerText = `${score}건`;
+            
+            if (score >= targetScore - 5) {
+                scoreDisplay.classList.remove('text-red-400');
+                scoreDisplay.classList.add('text-green-400');
+            } else {
+                scoreDisplay.classList.remove('text-green-400');
+                scoreDisplay.classList.add('text-red-400');
+            }
+
+            // Play warning sound when conglomerate first enters at 10 score
+            if (score >= 10 && !alertPlayedOnce) {
+                playSound('alert');
+                alertPlayedOnce = true;
+                catchTexts.push(new CatchText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, `⚠️ 대기업 진입! 시야 차단 시작!`, '#f59e0b'));
+            } else if (score < 10) {
+                // Reset alert flag if score drops below 10 so it trigger again upon re-entry
+                alertPlayedOnce = false;
+            }
+        }
+
+        function drawBackground() {
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+            bgGrad.addColorStop(0, '#020617'); 
+            bgGrad.addColorStop(1, '#0f172a'); 
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            ctx.strokeStyle = '#1e293b'; 
+            ctx.lineWidth = 0.5;
+            for (let y = 0; y < CANVAS_HEIGHT; y += 30) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(CANVAS_WIDTH, y);
+                ctx.stroke();
+            }
+
+            // Floor
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, CANVAS_HEIGHT - 35, CANVAS_WIDTH, 35);
+            ctx.fillStyle = '#ef4444'; 
+            ctx.fillRect(0, CANVAS_HEIGHT - 35, CANVAS_WIDTH, 3);
+        }
+
+        function endGame(status) {
+            gameState = status === 'win' ? 'CLEAR' : 'FAIL';
+            
+            if (gameState === 'CLEAR') {
+                playSound('win');
+                document.getElementById('clearOverlay').classList.remove('hidden');
+                document.getElementById('clearOverlay').classList.add('flex');
+            } else if (gameState === 'FAIL') {
+                playSound('fail');
+                document.getElementById('failScore').innerText = `${score >= 0 ? score : 0}억`;
+                document.getElementById('failOverlay').classList.remove('hidden');
+                document.getElementById('failOverlay').classList.add('flex');
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            ads = [];
+            particles = [];
+            catchTexts = [];
+            alertPlayedOnce = false;
+            player.x = CANVAS_WIDTH / 2 - 35;
+            updateHUD();
+            
+            document.getElementById('clearOverlay').classList.add('hidden');
+            document.getElementById('clearOverlay').classList.remove('flex');
+            document.getElementById('failOverlay').classList.add('hidden');
+            document.getElementById('failOverlay').classList.remove('flex');
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('startOverlay').classList.remove('flex');
+            
+            gameState = 'PLAYING';
+        }
+
+        function gameLoop() {
+            drawBackground();
+
+            if (gameState === 'PLAYING') {
+                player.update();
+
+                // Spawning controller
+                spawnTimer++;
+                if (spawnTimer >= spawnInterval) {
+                    ads.push(new AdBrief());
+                    spawnTimer = 0;
+                }
+
+                // Update & Draw Items
+                for (let i = ads.length - 1; i >= 0; i--) {
+                    ads[i].update();
+                    ads[i].draw();
+                }
+
+                checkCollisions();
+
+                // Render Active Player (김대리)
+                player.draw();
+
+                // Draw "대기업 광고" obstructing screen overlay dynamically if score is 10 or more
+                if (score >= 10) {
+                    largeObstacle.update();
+                    largeObstacle.draw();
+                }
+
+                // Particles update and draw
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    if (particles[i].life <= 0) {
+                        particles.splice(i, 1);
+                    } else {
+                        particles[i].draw();
+                    }
+                }
+
+                // Floating Catch/Miss Texts update and draw
+                for (let i = catchTexts.length - 1; i >= 0; i--) {
+                    catchTexts[i].update();
+                    if (catchTexts[i].alpha <= 0) {
+                        catchTexts.splice(i, 1);
+                    } else {
+                        catchTexts[i].draw();
+                    }
+                }
+            } else if (gameState === 'START') {
+                player.draw();
+            } else if (gameState === 'CLEAR' || gameState === 'FAIL') {
+                player.draw();
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Keyboard Handlers
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                keys.Left = true;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                keys.Right = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') {
+                keys.Left = false;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'Right') {
+                keys.Right = false;
+            }
+        });
+
+        // Touch Control Elements (For Mobile users)
+        const leftBtn = document.getElementById('btnLeft');
+        const rightBtn = document.getElementById('btnRight');
+
+        function setupTouchControllers(element, stateProp) {
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                initAudio();
+                activeTouch[stateProp] = true;
+            }, { passive: false });
+
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                activeTouch[stateProp] = false;
+            }, { passive: false });
+
+            element.addEventListener('mousedown', () => {
+                initAudio();
+                activeTouch[stateProp] = true;
+            });
+            
+            element.addEventListener('mouseup', () => {
+                activeTouch[stateProp] = false;
+            });
+
+            element.addEventListener('mouseleave', () => {
+                activeTouch[stateProp] = false;
+            });
+        }
+
+        setupTouchControllers(leftBtn, 'Left');
+        setupTouchControllers(rightBtn, 'Right');
+
+        // Game State Control Triggers
+        document.getElementById('startBtn').addEventListener('click', () => {
+            initAudio();
+            resetGame();
+        });
+
+        document.getElementById('restartBtn_clear').addEventListener('click', () => {
+            initAudio();
+            resetGame();
+        });
+
+        document.getElementById('restartBtn_fail').addEventListener('click', () => {
+            initAudio();
+            resetGame();
+        });
+
+        // Prevent body scroll on touch devices to improve responsiveness
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.target === canvas || e.target.closest('#btnLeft') || e.target.closest('#btnRight')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Bootstrap on page load
+        window.onload = function() {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
