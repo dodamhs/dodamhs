@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Focus Survivor.io - 숏폼 중독 예방 캠페인</title>
+    <!-- Tailwind CSS for UI Layouts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Stars & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;800;900&family=Noto+Sans+KR:wght=400;700;900&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #090d16;
+        }
+        /* Glow effects for modern retro vibe */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 4px;
+        }
+        @keyframes modalPop {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-pop {
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+    </style>
+</head>
+<body class="w-full h-screen relative flex items-center justify-center">
+
+    <!-- The main canvas where all the rendering takes place -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block bg-[#050811]"></canvas>
+
+    <!-- Top Consolidated HUD Bar -->
+    <div id="hud" class="absolute top-3 inset-x-3 flex flex-col gap-1.5 pointer-events-none select-none z-10">
+        <div class="flex flex-row gap-2 justify-between items-start w-full">
+            <!-- Left Side: Focus (HP) and Level -->
+            <div class="flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800/80 shadow-lg pointer-events-auto">
+                <div class="text-center">
+                    <span class="text-[9px] text-slate-400 block tracking-wider font-semibold">LV</span>
+                    <span id="levelText" class="text-base font-black text-emerald-400 leading-none">1</span>
+                </div>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <!-- Focus Bar -->
+                <div class="flex flex-col w-24 sm:w-32">
+                    <div class="flex justify-between text-[10px] text-slate-300 font-bold mb-0.5">
+                        <span class="text-cyan-400"><i class="fa-solid fa-brain mr-0.5 animate-pulse"></i> 집중력</span>
+                        <span id="hpText" class="text-[9px]">100/100</span>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                        <div id="hpBar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-100" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Timer, XP Progress, & Interactive Controls (Speed & Pause) -->
+            <div class="flex flex-col items-center gap-1 w-full max-w-xs sm:max-w-sm bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800/80 shadow-lg pointer-events-auto">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-hourglass-half text-amber-400 text-xs animate-spin" style="animation-duration: 4s;"></i>
+                        <span id="timerText" class="text-sm font-black text-slate-100 tracking-wider font-mono">10:00</span>
+                    </div>
+                    <!-- XP Progress -->
+                    <div class="w-16 sm:w-24 flex items-center gap-1.5">
+                        <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                            <div id="xpBar" class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-full rounded-full transition-all duration-200" style="width: 0%;"></div>
+                        </div>
+                        <span id="xpPercentText" class="text-[8px] text-slate-400 font-bold">0%</span>
+                    </div>
+                    <!-- Multi-state Controls -->
+                    <div class="flex items-center gap-1">
+                        <!-- Speed Controller (1x -> 1.5x -> 2x) -->
+                        <button id="speedToggleBtn" class="bg-slate-800 hover:bg-cyan-900/40 border border-slate-700 hover:border-cyan-500 text-[8px] text-cyan-400 font-bold px-1.5 py-0.5 rounded transition-all">
+                            <span id="speedMultiplierText">1x</span>
+                        </button>
+                        <!-- Pause Toggle Button -->
+                        <button id="pauseBtn" class="bg-slate-800 hover:bg-cyan-900/40 border border-slate-700 hover:border-cyan-500 text-[9px] text-cyan-400 font-bold px-2 py-0.5 rounded transition-all">
+                            <i class="fa-solid fa-pause"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Active & Passive Skills compact status matrix -->
+            <div class="flex items-center bg-slate-900/95 backdrop-blur-md px-2 py-1.5 rounded-xl border border-slate-800/80 shadow-lg pointer-events-auto">
+                <div id="skillsStatusList" class="flex flex-col gap-1.5 items-center justify-center">
+                    <!-- Active skill grid -->
+                    <div id="activeSkillsRow" class="grid grid-cols-3 gap-1 w-[110px]"></div>
+                    <!-- Micro Divider -->
+                    <div class="w-full h-[1px] bg-slate-800/60"></div>
+                    <!-- Passive skill grid -->
+                    <div id="passiveSkillsRow" class="grid grid-cols-3 gap-1 w-[110px]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning Alert for Bosses & Wave Changes -->
+        <div id="bossAlert" class="hidden self-center mt-1 bg-red-950/90 border border-red-500/50 px-3 py-1 rounded-lg text-center text-red-400 text-[10px] font-bold animate-pulse">
+            ⚠️ 강력한 스마트폰 유혹 출현! ⚠️
+        </div>
+    </div>
+
+    <!-- Virtual Joystick for Touch Screens -->
+    <div id="joystickContainer" class="absolute bottom-8 left-8 w-32 h-32 bg-slate-900/40 backdrop-blur-sm border border-slate-700/40 rounded-full flex items-center justify-center select-none pointer-events-auto active:border-cyan-500/50 md:hidden z-10 transition-colors">
+        <div id="joystickKnob" class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full shadow-lg shadow-cyan-500/20 transform translate-x-0 translate-y-0 transition-transform duration-75"></div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="startScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div class="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center flex flex-col items-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl mb-4 shadow-xl shadow-cyan-500/10">
+                <i class="fa-solid fa-shield-halved animate-bounce"></i>
+            </div>
+            <!-- 게임 제목 Focus Survivor.io 로 업데이트 완료 -->
+            <h1 class="text-2xl md:text-3xl font-black text-slate-100 tracking-tight mb-2 uppercase">Focus Survivor.io</h1>
+            <p class="text-xs text-cyan-400 font-bold tracking-widest mb-4">글로벌 문제 캠페인: 숏폼 콘텐츠 중독 예방</p>
+            
+            <!-- Context Campaign Narrative -->
+            <div class="w-full bg-slate-950/80 rounded-2xl p-4 border border-slate-800 text-left text-xs text-slate-300 space-y-3 mb-6 leading-relaxed">
+                <p>
+                    🧠 <b class="text-rose-400">팝콘 브레인(Popcorn Brain)</b>이란 숏폼 비디오, 끝없는 스크롤 알림 등 자극적이고 즉각적인 모바일에 길들여져 현실의 느린 자극에는 반응하지 않고 집중력이 파편화되는 현대 사회 문제 현상입니다.
+                </p>
+                <p>
+                    🛡️ 이 게임에서 여러분의 생명력은 <b>'집중력(Focus)'</b>입니다. 몰려오는 자극적인 숏폼, 쇼츠, 알림, 도파민 유혹을 차단하고 <b>공부, 필기, 명상, 스트레칭</b> 등 건강한 매일의 습관들로 뇌의 건강과 정신력을 단단히 수호하세요!
+                </p>
+                <p class="text-cyan-400 font-bold">
+                    ⚔️ 최대 5개의 액티브 스킬과 3개의 패시브 스킬만 장착할 수 있습니다. 한 번 선택한 스킬들을 끝까지 강화해 강력한 유혹에 저항하세요!
+                </p>
+                <div class="border-t border-slate-800 pt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                    <div>⌨️ <b>PC 조작:</b> WASD / 방향키 (일시정지: ESC / P)</div>
+                    <div>📱 <b>모바일 조작:</b> 화면 속 터치 조이스틱</div>
+                </div>
+            </div>
+
+            <button id="startGameBtn" class="w-full bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-md py-3.5 rounded-2xl shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/35 transition-all duration-200 transform active:scale-95">
+                건강한 습관으로 도전 시작하기
+            </button>
+        </div>
+    </div>
+
+    <!-- LEVEL UP UPGRADE SELECTION MODAL -->
+    <div id="levelUpModal" class="hidden absolute inset-0 bg-slate-950/65 backdrop-blur-[2px] flex items-center justify-center z-40 p-4">
+        <div class="max-w-2xl w-full bg-slate-900/95 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center modal-pop">
+            <!-- Custom Yellow Ribbon Header -->
+            <div class="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 border-2 border-yellow-300 px-8 py-2 rounded-xl shadow-lg transform -translate-y-10 mb-2">
+                <span class="text-xs font-black text-slate-950 tracking-widest uppercase"><i class="fa-solid fa-star"></i> 스킬 선택 <i class="fa-solid fa-star"></i></span>
+            </div>
+            <h2 class="text-[11px] font-bold text-slate-400 mb-6 -mt-4 text-center">건강한 일상 습관을 활성화하여 강력한 유혹에 대비하세요!</h2>
+            
+            <!-- Choice Options Horizontal Grid -->
+            <div id="upgradeOptionsContainer" class="w-full flex flex-col sm:flex-row gap-4 justify-center items-stretch min-h-[220px]">
+                <!-- Dynamic choices are injected here -->
+            </div>
+
+            <!-- Single-use Reroll Button -->
+            <button id="rerollBtn" class="mt-6 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 hover:border-cyan-500/50 transition-all flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-rotate-right text-cyan-400"></i>
+                <span id="rerollText">선택지 새로고침 (남은 횟수: 1/1)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PAUSE MODAL WITH DAMAGE METER -->
+    <div id="pauseModal" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-40 p-4">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center modal-pop">
+            <div class="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center text-2xl mb-3">
+                <i class="fa-solid fa-circle-pause animate-pulse"></i>
+            </div>
+            <h2 class="text-xl font-black text-slate-100 tracking-tight mb-1 uppercase">잠시 휴식 중</h2>
+            <p class="text-[11px] text-slate-400 mb-4 text-center">집중력을 재정비하고 건강한 일상 습관의 기여도를 확인하세요.</p>
+            
+            <!-- Live Damage Chart -->
+            <div class="w-full bg-slate-950/80 rounded-2xl p-4 border border-slate-800/80 mb-5">
+                <h3 class="text-xs font-bold text-slate-300 mb-3 flex items-center gap-1.5 border-b border-slate-800/80 pb-1.5">
+                    <i class="fa-solid fa-chart-bar text-cyan-400"></i> 습관별 유혹 정화 기여도 (데미지 비율)
+                </h3>
+                <div id="damageStatsContainer" class="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+                    <!-- Dynamic Damage Bars go here -->
+                </div>
+            </div>
+
+            <button id="resumeGameBtn" class="w-full bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm py-3 rounded-xl shadow-lg transition-all duration-150 transform active:scale-95">
+                수호 계속하기
+            </button>
+        </div>
+    </div>
+
+    <!-- CAMPAIGN REPORT RESULT (Victory/Gameover) -->
+    <div id="campaignResultModal" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-lg flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl text-center flex flex-col items-center my-auto">
+            <div id="resultIconContainer" class="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mb-4 shadow-xl">
+                <!-- Inner dynamic icon -->
+            </div>
+            <h2 id="resultTitle" class="text-2xl md:text-3xl font-black text-slate-100 tracking-tight mb-1">성공 또는 실패</h2>
+            <p id="resultSubtitle" class="text-xs mb-6 text-slate-400">결과 디스크립션</p>
+
+            <!-- Campaign Mindset Report Box -->
+            <div class="w-full bg-slate-950/90 rounded-2xl p-5 border border-slate-800/80 mb-6 text-left text-xs md:text-sm text-slate-300 space-y-4">
+                <h3 class="text-cyan-400 font-bold border-b border-slate-800 pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie"></i> 오늘의 집중력 수호 리포트
+                </h3>
+                
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div id="reportTimeBox" class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                        <span class="text-slate-400 block mb-1">수호해낸 시간</span>
+                        <span id="reportTime" class="font-bold text-slate-100 text-base">00:00</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                        <span class="text-slate-400 block mb-1">최종 습득 레벨</span>
+                        <span id="reportLevel" class="font-bold text-emerald-400 text-base">Lv.0</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                        <span class="text-slate-400 block mb-1">정화한 숏폼 유혹</span>
+                        <span id="reportEnemies" class="font-bold text-rose-400 text-base">0개</span>
+                    </div>
+                    <div id="reportTopSkillBox" class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                        <span class="text-slate-400 block mb-1">최고의 활약 습관</span>
+                        <span id="reportTopSkill" class="font-bold text-amber-400 text-xs sm:text-sm">-</span>
+                    </div>
+                </div>
+
+                <!-- Final Live Damage Chart -->
+                <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800/50">
+                    <h4 class="text-xs font-bold text-slate-300 mb-3 flex items-center gap-1.5 border-b border-slate-800/80 pb-1.5">
+                        <i class="fa-solid fa-chart-bar text-cyan-400"></i> 최종 습관별 유혹 정화 기여도
+                    </h4>
+                    <div id="resultDamageStatsContainer" class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                        <!-- Live final damage charts injected here -->
+                    </div>
+                </div>
+
+                <!-- Campaign Insight Message -->
+                <div class="bg-cyan-950/20 border border-cyan-800/30 p-3.5 rounded-xl text-slate-300 leading-relaxed text-[11px] md:text-xs">
+                    💡 <b>캠페인 메시지:</b> 스마트폰 앱들은 사용자를 더 오래 머무르게 하기 위해 고도로 설계된 자극적인 '알고리즘'을 사용합니다. 이에 저항하기 위해 하루에 단 10분만이라도 스마트폰의 알림을 끄고 가벼운 스트레칭이나 독서, 공부 노트를 작성하여 건강한 집중 습관을 가꿔 나가는 것은 어떨까요? 작은 습관이 강력한 마인드를 만듭니다!
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-md py-3.5 rounded-2xl shadow-lg transition-all duration-200 transform active:scale-95">
+                다시 뇌 리프레시하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Dynamic Resizing of Game Canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Sound Synthesizer via Web Audio API ---
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSelectSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(783.99, audioCtx.currentTime + 0.1); // G5
+            
+            gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.12);
+        }
+
+        function playSkillSelectSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [440.00, 554.37, 659.25, 880.00]; // A Major Arpeggio
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                gain.gain.setValueAtTime(0.05, now + idx * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.25);
+                
+                osc.start(now + idx * 0.05);
+                osc.stop(now + idx * 0.05 + 0.25);
+            });
+        }
+
+        function playEnemyDefeatSound(isBoss = false) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'triangle';
+            if (isBoss) {
+                osc.frequency.setValueAtTime(220.00, audioCtx.currentTime); // A3
+                osc.frequency.exponentialRampToValueAtTime(55.00, audioCtx.currentTime + 0.35); // A1
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } else {
+                osc.frequency.setValueAtTime(350.00, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(90.00, audioCtx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            }
+        }
+
+        function playPlayerHitSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(110.00, audioCtx.currentTime); // A2
+            osc.frequency.linearRampToValueAtTime(30.00, audioCtx.currentTime + 0.2);
+            
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.22);
+        }
+
+        function playLevelUpJingle() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C major pentatonic sweep
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+                gain.gain.setValueAtTime(0.06, now + idx * 0.06);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.35);
+                
+                osc.start(now + idx * 0.06);
+                osc.stop(now + idx * 0.06 + 0.35);
+            });
+        }
+
+        function playVictoryFanfare() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const fanfareNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 523.25, 659.25, 783.99, 1046.50];
+            fanfareNotes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                gain.gain.setValueAtTime(0.08, now + idx * 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.6);
+                
+                osc.start(now + idx * 0.12);
+                osc.stop(now + idx * 0.12 + 0.6);
+            });
+        }
+
+        function playGameOverSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const chord = [293.66, 349.23, 440.00]; // D Minor sad chord
+            chord.forEach((freq) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.frequency.linearRampToValueAtTime(freq * 0.6, now + 1.2);
+                
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                
+                osc.start();
+                osc.stop(now + 1.2);
+            });
+        }
+
+        function playSkillSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            switch(type) {
+                case 'study': // Book throw - quick high pitch
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                    break;
+                case 'stretching': // Shockwave - low rumble
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.07, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                    break;
+                case 'note': // Ink note splash
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                    break;
+                case 'block': // Shield metallic ding
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.12);
+                    break;
+                case 'error': // Boomerang throw buzz
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(320, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                    break;
+                case 'clean': // Broom whistle bounce
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                    break;
+                case 'sun': // Sunbeam zap strike
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.18);
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.18);
+                    break;
+                case 'shower': // Laser water stream sweep
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                    break;
+            }
+        }
+
+        // --- Core Game Configuration ---
+        let gameState = 'START'; // 'START', 'PLAYING', 'LEVEL_UP', 'RESULT'
+        let isGamePaused = false;
+        let gameTimeMax = 600; // 10 minutes (10 * 60 = 600s)
+        let gameTime = gameTimeMax; // Count down
+        let gameTimerInterval = null;
+        let gameSpeedMultiplier = 1; // 1x, 1.5x, 2x cyclic system
+        let physicsAccumulator = 0; // Sub-frame physics timing buffer
+        let enemyIdCounter = 0; // Unique ID to safeguard active calculations
+        let rerollsLeft = 1; // Rerolls left per single game run (1-time usable)
+
+        // Real-time Damage Meter Registry
+        const damageDealt = {
+            study: 0,
+            stretching: 0,
+            note: 0,
+            block: 0,
+            error: 0,
+            clean: 0,
+            sun: 0,
+            shower: 0,
+            meditation: 0
+        };
+
+        // Milestone Tracker for Boss Spawns
+        const bossesSpawned = {
+            dopamine_maker: false,
+            algo_master: false,
+            dopamine_lord: false
+        };
+
+        // Campaign Elements Dictionary
+        const campaignData = {
+            active: {
+                study: { name: '공부 (책 던지기)', emoji: '📖', desc: '가장 가까운 적에게 책을 던져 데미지를 입립니다.', icon: 'fa-solid fa-book-open', color: 'cyan', isPassive: false },
+                stretching: { name: '스트레칭 (충격파)', emoji: '🌀', desc: '주기적으로 플레이어 중심에 넓고 맑은 에너지를 방출해 사방의 적들을 크게 넉백시킵니다.', icon: 'fa-solid fa-person-running', color: 'purple', isPassive: false },
+                note: { name: '필기 (노트 투척)', emoji: '📝', desc: '무작위 적 방향으로 노트를 던져 공부 흔적 장판(지속 데미지)을 생성합니다.', icon: 'fa-solid fa-pen-fancy', color: 'sky', isPassive: false },
+                block: { name: '알림 차단 (회전 장벽)', emoji: '🔕', desc: '플레이어 주변을 소용돌이치며 회전하다 사라지는 강력한 알림 차단 장벽을 두릅니다.', icon: 'fa-solid fa-bell-slash', color: 'amber', isPassive: false },
+                error: { name: '오답노트 (부메랑)', emoji: '📔', desc: '보고 또 봐야 하는 오답노트를 먼 거리에 투척한 후 빠르게 회전시키며 회수합니다.', icon: 'fa-solid fa-file-circle-xmark', color: 'emerald', isPassive: false },
+                clean: { name: '청소 (드릴 빗자루)', emoji: '🧹', desc: '화면 전체를 관통하며 튕겨 다니다가 소멸과 재발사를 반복하는 빗자루를 던집니다.', icon: 'fa-solid fa-broom', color: 'yellow', isPassive: false },
+                sun: { name: '햇볕 쬐기 (태양 광선)', emoji: '☀️', desc: '무작위 적의 머리 위로 강력한 하늘의 정화 빛줄기(햇빛)를 내리칩니다.', icon: 'fa-solid fa-sun', color: 'orange', isPassive: false },
+                shower: { name: '샤워 (수직 레이저)', emoji: '🚿', desc: '하늘에서 쏟아져 내린 물줄기가 좌우를 휩쓸어 정화합니다.', icon: 'fa-solid fa-shower', color: 'blue', isPassive: false },
+                meditation: { name: '명상 (정신 수호 보호막)', emoji: '🧘', desc: '플레이어 주위에 한결 넓어진 감속 오라를 상시 펼쳐, 유혹들의 속도를 늦추고 지속적인 피해를 입깁니다.', icon: 'fa-solid fa-spa', color: 'pink', isPassive: false }
+            },
+            passive: {
+                reading: { name: '독서 (공격력 증가)', emoji: '📚', desc: '기초 뇌 능력을 키워 전반적인 모든 정화 능력(피해량)을 10%씩 향상합니다.', icon: 'fa-solid fa-book', color: 'indigo', isPassive: true },
+                exercise: { name: '운동 (이동속도 증가)', emoji: '🏃', desc: '기초 기동력을 향상해 플레이어 기본 이동 속도를 15%씩 높여줍니다.', icon: 'fa-solid fa-dumbbell', color: 'teal', isPassive: true },
+                breakfast: { name: '아침 식사 (최대 체력 증가)', emoji: '🍳', desc: '뇌에 완벽한 영양분을 채워 최대 집중력(HP)을 20 증가시키고 즉시 20만큼 회복합니다.', icon: 'fa-solid fa-egg', color: 'rose', isPassive: true },
+                review: { name: '복습 (경험치 증가)', emoji: '🔄', desc: '기억력 보강을 통해 영감 보석을 흡수할 때 얻는 경험치를 25%씩 증대합니다.', icon: 'fa-solid fa-arrows-spin', color: 'lime', isPassive: true },
+                time: { name: '시간 관리 (공격속도 증가)', emoji: '⏰', desc: '하루 일정을 분 단위로 정돈하여 공격 쿨타임을 10%씩 단축시킵니다.', icon: 'fa-solid fa-clock', color: 'violet', isPassive: true }
+            }
+        };
+
+        // Player Metrics State
+        const player = {
+            x: 0,
+            y: 0,
+            radius: 12, 
+            speed: 3.5,
+            baseSpeed: 3.5,
+            hp: 100,
+            maxHp: 100,
+            level: 1,
+            xp: 0,
+            xpNeeded: 10,
+            invincible: false,
+            invincibleTimer: 0,
+            invincibleDuration: 25,
+            damageCount: 0
+        };
+
+        // Current Active/Passive skill levels (Max 5 stars)
+        const skills = {
+            study: 1, // Start with Level 1 Study
+            stretching: 0,
+            note: 0,
+            block: 0,
+            error: 0,
+            clean: 0,
+            sun: 0,
+            shower: 0,
+            meditation: 0,
+            // Passives
+            reading: 0,
+            exercise: 0,
+            breakfast: 0,
+            review: 0,
+            time: 0
+        };
+
+        const MAX_SKILL_LEVEL = 5;
+        const MAX_ACTIVE_SLOTS = 6;  // 공부 포함 6개
+        const MAX_PASSIVE_SLOTS = 3; // 패시브 3개
+
+        // Individual Weapon / Skill Timers & Attributes
+        const timers = {
+            study: 0,
+            stretching: 0,
+            note: 0,
+            block: 0, 
+            error: 0,
+            clean: 0,
+            sun: 0,
+            shower: 0
+        };
+
+        // Cooldown configuration (frames at 1x speed)
+        const COOLDOWNS = {
+            study: 45,
+            stretching: 140,
+            note: 100,
+            block: 300, 
+            error: 220, 
+            clean: 360, 
+            sun: 240, 
+            shower: 150
+        };
+
+        // Arrays containing live physical entities
+        let enemies = [];
+        let projectiles = [];
+        let particles = [];
+        let experienceGems = [];
+        let recoveryItems = []; // Dropped sleep items (heal +75, 100% Drop on boss)
+        let inkPools = []; 
+        let floatingTexts = [];
+        
+        // Meditation continuous damage tick controller
+        let meditationTickCounter = 0;
+
+        // Camera positioning coordinates
+        const camera = {
+            x: 0,
+            y: 0,
+            shake: 0,
+            shakeDecay: 0.92
+        };
+
+        // Input Management
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Key clearing on blur to prevent stuck/stuck-running movement
+        window.addEventListener('blur', () => {
+            clearKeys();
+        });
+
+        function clearKeys() {
+            for (const key in keys) {
+                keys[key] = false;
+            }
+        }
+
+        // Touch Joystick Setup
+        const joystickContainer = document.getElementById('joystickContainer');
+        const joystickKnob = document.getElementById('joystickKnob');
+        let isTouchingJoystick = false;
+        let joystickStart = { x: 0, y: 0 };
+        let joystickCurrent = { x: 0, y: 0 };
+        let joystickVector = { x: 0, y: 0 };
+
+        function setupJoystick() {
+            joystickContainer.addEventListener('touchstart', (e) => {
+                initAudio();
+                isTouchingJoystick = true;
+                const touch = e.touches[0];
+                const rect = joystickContainer.getBoundingClientRect();
+                joystickStart.x = rect.left + rect.width / 2;
+                joystickStart.y = rect.top + rect.height / 2;
+                handleJoystickMove(touch.clientX, touch.clientY);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isTouchingJoystick) return;
+                const touch = e.touches[0];
+                handleJoystickMove(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => {
+                if (!isTouchingJoystick) return;
+                isTouchingJoystick = false;
+                joystickVector.x = 0;
+                joystickVector.y = 0;
+                joystickKnob.style.transform = 'translate(0px, 0px)';
+            });
+        }
+
+        function handleJoystickMove(clientX, clientY) {
+            const dx = clientX - joystickStart.x;
+            const dy = clientY - joystickStart.y;
+            const dist = Math.max(0.1, Math.sqrt(dx * dx + dy * dy));
+            const maxRadius = 45;
+
+            if (dist === 0) {
+                joystickVector.x = 0;
+                joystickVector.y = 0;
+                return;
+            }
+
+            const angle = Math.atan2(dy, dx);
+            const moveDist = Math.min(dist, maxRadius);
+            
+            const knobX = Math.cos(angle) * moveDist;
+            const knobY = Math.sin(angle) * moveDist;
+            
+            joystickKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+            joystickVector.x = knobX / maxRadius;
+            joystickVector.y = knobY / maxRadius;
+        }
+        setupJoystick();
+
+        // Time Control (Cyclic 1x -> 1.5x -> 2x)
+        const speedToggleBtn = document.getElementById('speedToggleBtn');
+        const speedMultiplierText = document.getElementById('speedMultiplierText');
+        speedToggleBtn.addEventListener('click', () => {
+            initAudio();
+            playSelectSound();
+            if (gameSpeedMultiplier === 1) {
+                gameSpeedMultiplier = 1.5;
+                speedMultiplierText.innerText = "1.5x";
+                speedToggleBtn.className = "bg-amber-900/40 hover:bg-amber-900/60 border border-amber-500 text-[8px] text-amber-400 font-bold px-1.5 py-0.5 rounded transition-all";
+            } else if (gameSpeedMultiplier === 1.5) {
+                gameSpeedMultiplier = 2;
+                speedMultiplierText.innerText = "2x";
+                speedToggleBtn.className = "bg-rose-900/40 hover:bg-rose-900/60 border border-rose-500 text-[8px] text-rose-400 font-bold px-1.5 py-0.5 rounded transition-all";
+            } else {
+                gameSpeedMultiplier = 1;
+                speedMultiplierText.innerText = "1x";
+                speedToggleBtn.className = "bg-slate-800 hover:bg-cyan-900/40 border border-slate-700 hover:border-cyan-500 text-[8px] text-cyan-400 font-bold px-1.5 py-0.5 rounded transition-all";
+            }
+            startTimer();
+        });
+
+        // Pause Management
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseModal = document.getElementById('pauseModal');
+        const resumeGameBtn = document.getElementById('resumeGameBtn');
+
+        function togglePause() {
+            if (gameState !== 'PLAYING') return; 
+            initAudio();
+            playSelectSound();
+            isGamePaused = !isGamePaused;
+            if (isGamePaused) {
+                pauseModal.classList.remove('hidden');
+                renderDamageStats('damageStatsContainer');
+            } else {
+                pauseModal.classList.add('hidden');
+            }
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+        resumeGameBtn.addEventListener('click', () => {
+            initAudio();
+            playSelectSound();
+            isGamePaused = false;
+            pauseModal.classList.add('hidden');
+        });
+
+        // Keyboard Shortcut for Pause/Resume
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key.toLowerCase() === 'p') {
+                togglePause();
+            }
+        });
+
+        // Modular Damage Stats UI Generator
+        function renderDamageStats(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+
+            let totalDmg = 0;
+            for (const key in damageDealt) {
+                totalDmg += damageDealt[key];
+            }
+
+            const activeDealt = [];
+            for (const key in damageDealt) {
+                if (skills[key] > 0 || damageDealt[key] > 0) {
+                    activeDealt.push({
+                        key,
+                        dmg: damageDealt[key],
+                        meta: campaignData.active[key]
+                    });
+                }
+            }
+
+            activeDealt.sort((a, b) => b.dmg - a.dmg);
+
+            if (activeDealt.length === 0 || totalDmg === 0) {
+                container.innerHTML = `<div class="text-center text-xs text-slate-500 py-6">아직 정화 데미지가 누적되지 않았습니다.</div>`;
+                return;
+            }
+
+            activeDealt.forEach(item => {
+                const pct = totalDmg > 0 ? ((item.dmg / totalDmg) * 100).toFixed(1) : '0.0';
+                const statRow = document.createElement('div');
+                statRow.className = "flex flex-col gap-1";
+                statRow.innerHTML = `
+                    <div class="flex justify-between items-center text-[11px] font-bold text-slate-300">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs">${item.meta.emoji}</span>
+                            <span>${item.meta.name.split(' (')[0]}</span>
+                            <span class="text-[8px] text-cyan-400 font-extrabold">★${skills[item.key] || 1}</span>
+                        </div>
+                        <div class="text-right font-mono">
+                            <span class="text-slate-400 mr-1 text-[9px]">${Math.floor(item.dmg)}</span>
+                            <span class="text-cyan-400 text-[10px]">${pct}%</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-850">
+                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full" style="width: ${pct}%;"></div>
+                    </div>
+                `;
+                container.appendChild(statRow);
+            });
+        }
+
+        // Damage Application Safety Proxy (Populates metrics safely)
+        function applyDamageToEnemy(e, dmg, skillType) {
+            const actualDmg = Math.min(e.hp, dmg);
+            e.hp -= actualDmg;
+            if (damageDealt[skillType] !== undefined) {
+                damageDealt[skillType] += actualDmg;
+            }
+            return actualDmg;
+        }
+
+        // Interactive HUD Statistics Updates
+        function getPassiveMod(type) {
+            const lvl = skills[type] || 0;
+            switch(type) {
+                case 'reading': return 1 + (lvl * 0.10); // 10% ATK damage multiplier
+                case 'exercise': return 1 + (lvl * 0.15); // 15% move speed bonus
+                case 'review': return 1 + (lvl * 0.25); // 25% XP multiplier
+                case 'time': return 1 - (lvl * 0.10); // 10% lower cooldown
+                default: return 1;
+            }
+        }
+
+        function updateStatsPanel() {
+            const activeRow = document.getElementById('activeSkillsRow');
+            const passiveRow = document.getElementById('passiveSkillsRow');
+            
+            activeRow.innerHTML = '';
+            passiveRow.innerHTML = '';
+            
+            let activeCount = 0;
+            for (const key in campaignData.active) {
+                const lvl = skills[key];
+                if (lvl > 0) {
+                    activeCount++;
+                    const skill = campaignData.active[key];
+                    const skillBadge = document.createElement('div');
+                    skillBadge.className = `flex items-center justify-center bg-cyan-950/40 border border-cyan-500/40 rounded-lg w-[34px] h-[22px] text-[10px] text-cyan-200 font-bold gap-0.5 shadow-sm`;
+                    skillBadge.innerHTML = `<span>${skill.emoji}</span><span class="text-cyan-400 text-[8px] font-black">★${lvl}</span>`;
+                    activeRow.appendChild(skillBadge);
+                }
+            }
+
+            for (let i = activeCount; i < MAX_ACTIVE_SLOTS; i++) {
+                const emptyBadge = document.createElement('div');
+                emptyBadge.className = `flex items-center justify-center bg-cyan-950/10 border border-cyan-500/20 border-dashed rounded-lg text-[7.5px] text-cyan-400/40 font-bold h-[22px] w-[34px] whitespace-nowrap tracking-tighter`;
+                emptyBadge.innerText = '액티브';
+                activeRow.appendChild(emptyBadge);
+            }
+
+            let passiveCount = 0;
+            for (const key in campaignData.passive) {
+                const lvl = skills[key];
+                if (lvl > 0) {
+                    passiveCount++;
+                    const skill = campaignData.passive[key];
+                    const skillBadge = document.createElement('div');
+                    skillBadge.className = `flex items-center justify-center bg-emerald-950/40 border border-emerald-500/40 rounded-lg w-[34px] h-[22px] text-[10px] text-emerald-200 font-bold gap-0.5 shadow-sm`;
+                    skillBadge.innerHTML = `<span>${skill.emoji}</span><span class="text-emerald-400 text-[8px] font-black">★${lvl}</span>`;
+                    passiveRow.appendChild(skillBadge);
+                }
+            }
+
+            for (let i = passiveCount; i < MAX_PASSIVE_SLOTS; i++) {
+                const emptyBadge = document.createElement('div');
+                emptyBadge.className = `flex items-center justify-center bg-emerald-950/10 border border-emerald-500/20 border-dashed rounded-lg text-[7.5px] text-emerald-400/40 font-bold h-[22px] w-[34px] whitespace-nowrap tracking-tighter`;
+                emptyBadge.innerText = '패시브';
+                passiveRow.appendChild(emptyBadge);
+            }
+        }
+
+        // Floating Damage/Text Feedback
+        function createFloatingText(x, y, text, color = '#ffffff', isFocus = false) {
+            floatingTexts.push({
+                x, y, text, color,
+                vy: -1.5,
+                alpha: 1,
+                decay: 0.02,
+                fontSize: isFocus ? 13 : 10,
+                fontWeight: isFocus ? '900' : 'bold'
+            });
+        }
+
+        // Particle System
+        function createExplosion(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.5 + Math.random() * 2.5;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 1.0 + Math.random() * 1.5,
+                    color,
+                    alpha: 1,
+                    decay: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // Dynamic Enemy Wave System with 10 detailed custom-balanced monsters
+        const monsterPool = [
+            { name: '좋아요', emoji: '❤️', color: '#f43f5e', baseHp: 12, baseSpeed: 1.5, damage: 4, size: 16 },
+            { name: '알림', emoji: '🔔', color: '#f59e0b', baseHp: 19, baseSpeed: 1.6, damage: 5, size: 16 },
+            { name: '추천', emoji: '👍', color: '#3b82f6', baseHp: 28, baseSpeed: 1.4, damage: 6, size: 17 },
+            { name: '인기급상승', emoji: '🔥', color: '#ef4444', baseHp: 40, baseSpeed: 1.8, damage: 8, size: 18 },
+            { name: '핸드폰', emoji: '📱', color: '#94a3b8', baseHp: 55, baseSpeed: 1.3, damage: 10, size: 20 },
+            { name: '댓글', emoji: '💬', color: '#10b981', baseHp: 75, baseSpeed: 1.5, damage: 8, size: 17 },
+            { name: '게임', emoji: '🎮', color: '#8b5cf6', baseHp: 100, baseSpeed: 1.7, damage: 12, size: 19 },
+            { name: '인터넷', emoji: '🌐', color: '#06b6d4', baseHp: 135, baseSpeed: 1.4, damage: 11, size: 18 },
+            { name: '밈', emoji: '😂', color: '#eab308', baseHp: 175, baseSpeed: 1.9, damage: 13, size: 17 },
+            { name: '영상', emoji: '🎬', color: '#ec4899', baseHp: 230, baseSpeed: 1.6, damage: 15, size: 19 }
+        ];
+
+        let spawnTimer = 0;
+        function getWaveConfig() {
+            const elapsed = gameTimeMax - gameTime; 
+            const currentMinute = Math.min(9, Math.floor(elapsed / 60)); 
+            const current = monsterPool[currentMinute];
+            const baseInterval = Math.max(12, 24 - currentMinute);
+
+            return {
+                name: current.name,
+                spawnInterval: baseInterval, 
+                baseSpeed: current.baseSpeed,
+                maxHp: current.baseHp,
+                color: current.color,
+                emoji: current.emoji
+            };
+        }
+
+        function spawnEnemy(isBoss = false, bossType = '') {
+            const elapsed = gameTimeMax - gameTime;
+            const currentMinute = Math.min(9, Math.floor(elapsed / 60));
+
+            const angle = Math.random() * Math.PI * 2;
+            const spawnDist = Math.max(canvas.width, canvas.height) / 1.4;
+            const x = player.x + Math.cos(angle) * spawnDist;
+            const y = player.y + Math.sin(angle) * spawnDist;
+
+            if (isBoss) {
+                let bossSize = 38; 
+                let bossHp = 600;
+                let bossDmg = 25;
+                let bossSpeed = 1.2;
+                let name = "";
+                let color = "#ef4444";
+                let emoji = "👿";
+
+                if (bossType === 'dopamine_maker') {
+                    name = "🚨 도파민 메이커";
+                    bossHp = 2000; 
+                    bossDmg = 18;
+                    bossSpeed = 1.3;
+                    color = "#d946ef";
+                    emoji = "💊";
+                } else if (bossType === 'algo_master') {
+                    name = "🚨 알고리즘 마스터";
+                    bossHp = 4500; 
+                    bossDmg = 22;
+                    bossSpeed = 1.0;
+                    color = "#8b5cf6";
+                    emoji = "🕸️";
+                } else if (bossType === 'dopamine_lord') {
+                    name = "👑 도파민의 군주";
+                    bossHp = 10000; 
+                    bossDmg = 35;
+                    bossSpeed = 1.1;
+                    color = "#f43f5e";
+                    emoji = "👑";
+                    bossSize = 52; 
+                }
+
+                enemies.push({
+                    id: enemyIdCounter++,
+                    x, y,
+                    size: bossSize,
+                    speed: bossSpeed,
+                    hp: bossHp,
+                    maxHp: bossHp,
+                    damage: bossDmg,
+                    name,
+                    color,
+                    emoji,
+                    isBoss: true,
+                    flash: 0,
+                    patternTimer: 0,
+                    knockbackX: 0, 
+                    knockbackY: 0
+                });
+
+                showBossAlert();
+            } else {
+                if (enemies.length >= 250) return;
+
+                let selectedIdx = currentMinute;
+                if (currentMinute > 0 && Math.random() > 0.6) {
+                    selectedIdx = Math.floor(Math.random() * currentMinute);
+                }
+
+                const config = monsterPool[selectedIdx];
+
+                enemies.push({
+                    id: enemyIdCounter++,
+                    x, y,
+                    size: config.size,
+                    speed: config.baseSpeed + (Math.random() * 0.3),
+                    hp: config.baseHp,
+                    maxHp: config.baseHp,
+                    damage: config.damage,
+                    name: config.name,
+                    color: config.color,
+                    emoji: config.emoji,
+                    isBoss: false,
+                    flash: 0,
+                    knockbackX: 0, 
+                    knockbackY: 0
+                });
+            }
+        }
+
+        function showBossAlert() {
+            const alert = document.getElementById('bossAlert');
+            alert.innerText = "⚠️ 강력한 스마트폰 유혹 출현! ⚠️";
+            alert.classList.remove('hidden');
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 5000);
+        }
+
+        function spawnGem(x, y) {
+            experienceGems.push({
+                x, y,
+                size: 5, 
+                xpValue: 1.5,
+                speed: 0,
+                target: null
+            });
+        }
+
+        // Spawn a healthy Sleep (recovery) drop item ( 침대 🛏️ )
+        function spawnRecoveryItem(x, y) {
+            recoveryItems.push({
+                x, y,
+                size: 18, 
+                healAmount: 75,
+                speed: 0,
+                target: null
+            });
+        }
+
+        // Active Skills Logic Setup
+        function processActiveSkills() {
+            const atkMod = getPassiveMod('reading');
+            const cdMod = getPassiveMod('time');
+
+            // 1. Study (Basic attack - Throwing books)
+            if (skills.study > 0) {
+                timers.study--;
+                if (timers.study <= 0) {
+                    fireStudyBook(atkMod);
+                    timers.study = COOLDOWNS.study * cdMod;
+                }
+            }
+
+            // 2. Stretching (Circular shockwave)
+            if (skills.stretching > 0) {
+                timers.stretching--;
+                if (timers.stretching <= 0) {
+                    triggerStretchingShockwave(atkMod);
+                    timers.stretching = COOLDOWNS.stretching * cdMod;
+                }
+            }
+
+            // 3. Note-taking (Molotov ink puddle)
+            if (skills.note > 0) {
+                timers.note--;
+                if (timers.note <= 0) {
+                    fireNoteTaking(atkMod);
+                    timers.note = COOLDOWNS.note * cdMod;
+                }
+            }
+
+            // 4. Notification Block (Rotating shield barrier)
+            if (skills.block > 0) {
+                timers.block--;
+                if (timers.block <= 0) {
+                    triggerNotificationShield(atkMod);
+                    timers.block = COOLDOWNS.block * cdMod;
+                }
+            }
+
+            // 5. Incorrect Answer Note (Boomerang)
+            if (skills.error > 0) {
+                timers.error--;
+                const hasActiveBoomerang = projectiles.some(p => p.type === 'boomerang');
+                if (timers.error <= 0 && !hasActiveBoomerang) {
+                    fireErrorNote(atkMod);
+                    timers.error = COOLDOWNS.error * cdMod;
+                }
+            }
+
+            // 6. Cleaning (Bouncing piercing broom)
+            if (skills.clean > 0) {
+                timers.clean--;
+                if (timers.clean <= 0) {
+                    fireCleaningBroom(atkMod);
+                    timers.clean = COOLDOWNS.clean * cdMod;
+                }
+            }
+
+            // 7. Sunbathing (Sunbeams lightning)
+            if (skills.sun > 0) {
+                timers.sun--;
+                if (timers.sun <= 0) {
+                    triggerSunbeamStrike(atkMod);
+                    timers.sun = COOLDOWNS.sun * cdMod;
+                }
+            }
+
+            // 8. Shower (Laser sweep)
+            if (skills.shower > 0) {
+                timers.shower--;
+                if (timers.shower <= 0) {
+                    fireShowerWater(atkMod);
+                    timers.shower = COOLDOWNS.shower * cdMod;
+                }
+            }
+        }
+
+        // Study skill details
+        function fireStudyBook(atkMod) {
+            if (enemies.length === 0) return;
+            let target = null;
+            let minDist = Infinity;
+            enemies.forEach(e => {
+                const dist = Math.max(0.1, Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = e;
+                }
+            });
+
+            if (target) {
+                playSkillSound('study');
+                const dx = target.x - player.x;
+                const dy = target.y - player.y;
+                const dist = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+                const speed = 7.5;
+                const vx = (dx / dist) * speed;
+                const vy = (dy / dist) * speed;
+
+                const lvl = skills.study;
+                const canPierce = lvl >= 4;
+                const maxProjectiles = lvl >= 5 ? 3 : (lvl >= 3 ? 2 : 1);
+
+                for (let i = 0; i < maxProjectiles; i++) {
+                    const offsetAngle = (i - (maxProjectiles - 1) / 2) * 0.18;
+                    const cos = Math.cos(offsetAngle);
+                    const sin = Math.sin(offsetAngle);
+                    const projVx = vx * cos - vy * sin;
+                    const projVy = vx * sin + vy * cos;
+
+                    projectiles.push({
+                        type: 'book',
+                        x: player.x,
+                        y: player.y,
+                        vx: projVx,
+                        vy: projVy,
+                        radius: 6 + (lvl * 1.0), 
+                        damage: (8 + lvl * 4) * atkMod,
+                        pointerLimit: canPierce ? 3 : 1,
+                        pierceCount: canPierce ? 3 : 1,
+                        hitList: new Set(),
+                        rotation: Math.random() * Math.PI,
+                        color: '#22d3ee'
+                    });
+                }
+            }
+        }
+
+        // Stretching shockwave
+        function triggerStretchingShockwave(atkMod) {
+            playSkillSound('stretching');
+            const lvl = skills.stretching;
+            const radius = 70 + (lvl * 15); 
+            projectiles.push({
+                type: 'stretching',
+                x: player.x,
+                y: player.y,
+                currentRadius: 0,
+                maxRadius: radius,
+                expandSpeed: 3.2 + (lvl * 0.3),
+                damage: (12 + lvl * 5) * atkMod,
+                hitList: new Set(),
+                color: 'rgba(168, 85, 247, 0.20)'
+            });
+        }
+
+        // Note Throwing (Molotov)
+        function fireNoteTaking(atkMod) {
+            playSkillSound('note');
+            const lvl = skills.note;
+            const count = lvl >= 3 ? 2 : 1;
+            
+            for (let i = 0; i < count; i++) {
+                let targetX, targetY;
+                if (enemies.length > 0) {
+                    const randEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+                    targetX = randEnemy.x + (Math.random() - 0.5) * 40;
+                    targetY = randEnemy.y + (Math.random() - 0.5) * 40;
+                } else {
+                    targetX = player.x + (Math.random() - 0.5) * 150;
+                    targetY = player.y + (Math.random() - 0.5) * 150;
+                }
+
+                projectiles.push({
+                    type: 'note_throw',
+                    x: player.x,
+                    y: player.y,
+                    startX: player.x,
+                    startY: player.y,
+                    targetX, targetY,
+                    progress: 0,
+                    speed: 0.04 + (lvl * 0.005),
+                    damage: (4 + lvl * 2) * atkMod, 
+                    poolRadius: 43 + (lvl * 6), 
+                    poolDuration: 115 + (lvl * 12) 
+                });
+            }
+        }
+
+        // Notification Block (Rotating shield barrier)
+        function triggerNotificationShield(atkMod) {
+            playSkillSound('block');
+            const lvl = skills.block;
+            projectiles = projectiles.filter(p => p.type !== 'shield_item');
+
+            const count = 1 + lvl; 
+            const radius = 85 + (lvl * 10);
+
+            for (let i = 0; i < count; i++) {
+                projectiles.push({
+                    type: 'shield_item',
+                    angle: (Math.PI * 2 / count) * i,
+                    radius,
+                    speed: 0.045 + (lvl * 0.005),
+                    damage: (6 + lvl * 3) * atkMod,
+                    maxTimer: 240, 
+                    activeTimer: 240 
+                });
+            }
+        }
+
+        // Boomerang (Incorrect Note)
+        function fireErrorNote(atkMod) {
+            playSkillSound('error');
+            const lvl = skills.error;
+            let angle = 0;
+            if (enemies.length > 0) {
+                const closest = enemies[0];
+                angle = Math.atan2(closest.y - player.y, closest.x - player.x);
+            } else {
+                angle = Math.random() * Math.PI * 2;
+            }
+
+            const speed = 4.2; 
+            projectiles.push({
+                type: 'boomerang',
+                x: player.x,
+                y: player.y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                damage: (15 + lvl * 14) * atkMod,
+                hitList: new Set(),
+                distancePassed: 0,
+                returning: false,
+                size: 18 + (lvl * 9), 
+                color: '#10b981',
+                rotation: 0 
+            });
+        }
+
+        // Cleaning Broom (Bouncing piercing broom)
+        function fireCleaningBroom(atkMod) {
+            playSkillSound('clean');
+            const lvl = skills.clean;
+            const count = lvl; 
+            
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 6.0 + lvl * 0.5;
+                projectiles.push({
+                    type: 'broom',
+                    x: player.x,
+                    y: player.y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    damage: (10 + lvl * 4) * atkMod,
+                    size: 26, 
+                    bounces: 0,
+                    maxBounces: 15, 
+                    duration: 240, 
+                    rotation: angle - Math.PI * 0.75 
+                });
+            }
+        }
+
+        // Sunbathing (Lightning Strikes from Above)
+        function triggerSunbeamStrike(atkMod) {
+            if (enemies.length === 0) return;
+            playSkillSound('sun');
+            const lvl = skills.sun;
+            const targetsCount = lvl; 
+
+            const potentialTargets = [...enemies].sort(() => 0.5 - Math.random()).slice(0, targetsCount);
+
+            potentialTargets.forEach(target => {
+                projectiles.push({
+                    type: 'sunbeam',
+                    x: target.x,
+                    y: target.y,
+                    duration: 18, 
+                    maxDuration: 18,
+                    damage: (18 + lvl * 7) * atkMod, 
+                    hitList: new Set(),
+                    targetEnemy: target
+                });
+
+                createExplosion(target.x, target.y, '#fbbf24', 6);
+            });
+        }
+
+        // Shower Laser
+        function fireShowerWater(atkMod) {
+            playSkillSound('shower');
+            const lvl = skills.shower;
+            const count = 1 + lvl; 
+            
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 60 + Math.random() * 140;
+                const startX = player.x + Math.cos(angle) * dist;
+                const startY = player.y + Math.sin(angle) * dist;
+                
+                const sweepDirection = Math.random() < 0.5 ? -1 : 1;
+                const sweepSpeed = 1.4 + (lvl * 0.35);
+
+                projectiles.push({
+                    type: 'shower_stream',
+                    x: startX,
+                    y: startY,
+                    sweepDir: sweepDirection,
+                    sweepSpeed: sweepSpeed,
+                    width: 12 + (lvl * 2.5), 
+                    damage: (12 + lvl * 5) * atkMod,
+                    duration: 45, 
+                    maxDuration: 45,
+                    hitList: new Set() 
+                });
+            }
+        }
+
+        // Meditation aura slowing logic
+        function checkMeditationAura(atkMod) {
+            const lvl = skills.meditation;
+            const radius = 110 + (lvl * 15); 
+
+            enemies.forEach(e => {
+                if (lvl === 0) {
+                    e.inMeditation = false;
+                    if (!e.isBoss) {
+                        const found = monsterPool.find(m => m.name === e.name);
+                        e.speed = found ? found.baseSpeed : 1.5;
+                    }
+                    return;
+                }
+
+                const dist = Math.max(0.1, Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2));
+                if (dist <= radius) {
+                    e.speed = e.isBoss ? 0.9 : 0.65;
+                    e.inMeditation = true; 
+                } else {
+                    e.inMeditation = false;
+                    if (!e.isBoss) {
+                        const found = monsterPool.find(m => m.name === e.name);
+                        e.speed = found ? found.baseSpeed : 1.5;
+                    }
+                }
+            });
+        }
+
+        // Dedicated Meditation Damage Tick
+        function checkMeditationAuraDamage(atkMod) {
+            if (skills.meditation === 0) return;
+            const lvl = skills.meditation;
+            const radius = 110 + (lvl * 15);
+
+            enemies.forEach(e => {
+                const dist = Math.max(0.1, Math.sqrt((e.x - player.x)**2 + (e.y - player.y)**2));
+                if (dist <= radius) {
+                    const damage = (1.2 + lvl * 0.6) * atkMod;
+                    applyDamageToEnemy(e, damage, 'meditation');
+                    e.flash = 3;
+                    createExplosion(e.x, e.y, '#f472b6', 2);
+                    
+                    if (Math.random() < 0.20) {
+                        createFloatingText(e.x, e.y - 12, damage.toFixed(1), '#f472b6');
+                    }
+                }
+            });
+        }
+
+        // Upgrade Selection Options Pool Generator
+        function getUpgradeChoices() {
+            const choices = [];
+            const ownedActives = Object.keys(campaignData.active).filter(key => skills[key] > 0);
+            const ownedPassives = Object.keys(campaignData.passive).filter(key => skills[key] > 0);
+
+            const activeSlotsFull = ownedActives.length >= MAX_ACTIVE_SLOTS;
+            const passiveSlotsFull = ownedPassives.length >= MAX_PASSIVE_SLOTS;
+
+            for (const key in campaignData.active) {
+                const currentLvl = skills[key];
+                if (currentLvl < MAX_SKILL_LEVEL) {
+                    const isOwned = currentLvl > 0;
+                    if (isOwned || !activeSlotsFull) {
+                        choices.push({
+                            id: key,
+                            isPassive: false,
+                            targetLevel: currentLvl + 1,
+                            meta: campaignData.active[key]
+                        });
+                    }
+                }
+            }
+
+            for (const key in campaignData.passive) {
+                const currentLvl = skills[key];
+                if (currentLvl < MAX_SKILL_LEVEL) {
+                    const isOwned = currentLvl > 0;
+                    if (isOwned || !passiveSlotsFull) {
+                        choices.push({
+                            id: key,
+                            isPassive: true,
+                            targetLevel: currentLvl + 1,
+                            meta: campaignData.passive[key]
+                        });
+                    }
+                }
+            }
+
+            const shuffled = choices.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 3);
+        }
+
+        function triggerLevelUp() {
+            gameState = 'LEVEL_UP';
+            clearKeys(); 
+            document.getElementById('levelUpModal').classList.remove('hidden');
+
+            renderUpgradeOptions();
+            updateRerollButton();
+        }
+
+        function renderUpgradeOptions() {
+            const container = document.getElementById('upgradeOptionsContainer');
+            container.innerHTML = '';
+
+            const options = getUpgradeChoices();
+
+            if (options.length === 0) {
+                document.getElementById('rerollBtn').classList.add('hidden');
+                
+                const healCard = document.createElement('div');
+                healCard.className = `group bg-slate-950/90 border border-slate-700 hover:border-emerald-500/70 p-6 rounded-2xl cursor-pointer flex flex-col justify-center items-center text-center transition-all duration-200 shadow-xl w-full max-w-sm mx-auto`;
+                healCard.innerHTML = `
+                    <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full mb-2 font-black tracking-widest">MINDSET FULL RECOVERY</div>
+                    <h3 class="text-slate-100 font-extrabold text-sm mb-2">집중력 완전 리프레시</h3>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">선택할 수 있는 스킬 슬롯이 가득 찼거나 모두 최대 레벨입니다! 뇌에 충분한 휴식을 제공하여 소모된 집중력을 완전히 채웁니다.</p>
+                `;
+                healCard.addEventListener('click', () => {
+                    initAudio();
+                    playSkillSelectSound();
+                    player.hp = player.maxHp;
+                    document.getElementById('levelUpModal').classList.add('hidden');
+                    clearKeys();
+                    gameState = 'PLAYING';
+                    updateHUD();
+                });
+                container.appendChild(healCard);
+                return;
+            } else {
+                document.getElementById('rerollBtn').classList.remove('hidden');
+            }
+
+            options.forEach(opt => {
+                const card = document.createElement('div');
+                card.className = `group flex-1 bg-slate-950/90 border border-slate-800 hover:border-cyan-400 p-4 rounded-2xl cursor-pointer flex flex-col justify-between items-center transition-all duration-200 shadow-xl hover:shadow-cyan-500/10 active:scale-95 text-center relative overflow-hidden`;
+
+                let textType = opt.isPassive ? '기초 체력 습관 (패시브)' : '액티브 정화 기술 (공격)';
+                let tagColor = opt.isPassive ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30';
+
+                let starsHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    if (i < opt.targetLevel) {
+                        starsHTML += '<i class="fa-solid fa-star text-cyan-400 text-[10px] mx-0.5"></i>';
+                    } else if (i === opt.targetLevel) {
+                        starsHTML += '<i class="fa-solid fa-star text-cyan-400 text-[10px] mx-0.5 animate-pulse"></i>';
+                    } else {
+                        starsHTML += '<i class="fa-regular fa-star text-slate-700 text-[10px] mx-0.5"></i>';
+                    }
+                }
+
+                const isNewBadge = opt.targetLevel === 1 ? `<span class="absolute top-2 right-2 bg-cyan-500 text-[8px] text-slate-950 px-1.5 py-0.5 rounded font-black tracking-widest uppercase animate-bounce">New!</span>` : '';
+
+                card.innerHTML = `
+                    ${isNewBadge}
+                    <!-- Card Header -->
+                    <div class="w-full bg-slate-900 border border-slate-800/80 py-1.5 px-2 rounded-xl text-xs font-black text-slate-100 tracking-tight mb-3">
+                        ${opt.meta.name.split(' (')[0]}
+                    </div>
+
+                    <!-- Badge Type -->
+                    <span class="text-[8px] font-black tracking-wider uppercase px-2 py-0.5 rounded-full ${tagColor}">
+                        ${textType}
+                    </span>
+
+                    <!-- Giant Central Emoji/Icon -->
+                    <div class="w-16 h-16 bg-slate-900 border border-slate-800/60 rounded-2xl flex items-center justify-center text-3xl my-3 group-hover:scale-110 transition-transform">
+                        <span class="select-none">${opt.meta.emoji}</span>
+                    </div>
+
+                    <!-- Description Body -->
+                    <p class="text-[11px] text-slate-400 leading-relaxed mb-4 flex-grow min-h-[50px]">
+                        ${opt.meta.desc}
+                    </p>
+
+                    <!-- Star Level bar at the bottom -->
+                    <div class="w-full bg-slate-900 border border-slate-800/80 py-1.5 rounded-xl flex flex-col items-center justify-center gap-1 mt-auto">
+                        <span class="text-[8px] font-bold text-slate-500 tracking-wider">MIND LEVEL</span>
+                        <div class="flex items-center">
+                            ${starsHTML}
+                        </div>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    initAudio();
+                    playSkillSelectSound();
+                    skills[opt.id] = opt.targetLevel;
+                    
+                    if (opt.id === 'exercise') {
+                        player.speed = player.baseSpeed * getPassiveMod('exercise');
+                    } else if (opt.id === 'breakfast') {
+                        player.maxHp = 100 + (skills.breakfast * 20);
+                        player.hp = Math.min(player.maxHp, player.hp + 20);
+                    }
+
+                    document.getElementById('levelUpModal').classList.add('hidden');
+                    clearKeys();
+                    gameState = 'PLAYING';
+                    updateHUD();
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function updateRerollButton() {
+            const rerollBtn = document.getElementById('rerollBtn');
+            const rerollText = document.getElementById('rerollText');
+
+            if (rerollsLeft > 0) {
+                rerollBtn.disabled = false;
+                rerollBtn.className = "mt-6 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 hover:border-cyan-500/50 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-2 active:scale-95 cursor-pointer";
+                rerollText.innerText = "선택지 새로고침 (남은 횟수: 1/1)";
+            } else {
+                rerollBtn.disabled = true;
+                rerollBtn.className = "mt-6 px-5 py-2.5 bg-slate-950 text-slate-600 text-xs font-bold rounded-xl border border-slate-900 transition-all flex items-center gap-2 opacity-50 cursor-not-allowed";
+                rerollText.innerText = "새로고침 사용 완료 (0/1)";
+            }
+        }
+
+        document.getElementById('rerollBtn').addEventListener('click', () => {
+            if (rerollsLeft > 0 && gameState === 'LEVEL_UP') {
+                initAudio();
+                playSelectSound();
+                rerollsLeft--;
+                renderUpgradeOptions();
+                updateRerollButton();
+            }
+        });
+
+        // Experience Points collection Logic
+        function addXp(amount) {
+            const xpMod = getPassiveMod('review');
+            player.xp += amount * xpMod;
+
+            if (player.xp >= player.xpNeeded) {
+                player.xp -= player.xpNeeded;
+                player.level++;
+                player.xpNeeded = player.level * 6 + 10; 
+
+                createExplosion(player.x, player.y, '#10b981', 12);
+                createFloatingText(player.x, player.y - 10, "MIND LEVEL UP!", "#10b981", true);
+                initAudio();
+                playLevelUpJingle();
+                triggerLevelUp();
+            }
+            updateHUD();
+        }
+
+        function updateHUD() {
+            const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100);
+            document.getElementById('hpBar').style.width = `${hpPercent}%`;
+            document.getElementById('hpText').innerText = `${Math.ceil(player.hp)}/${player.maxHp}`;
+
+            const xpPercent = Math.min(100, (player.xp / player.xpNeeded) * 100);
+            document.getElementById('xpBar').style.width = `${xpPercent}%`;
+            document.getElementById('xpPercentText').innerText = `${Math.floor(xpPercent)}%`;
+
+            document.getElementById('levelText').innerText = player.level;
+
+            updateStatsPanel();
+        }
+
+        function updatePhysics() {
+            if (gameState !== 'PLAYING' || isGamePaused) return;
+
+            if (camera.shake > 0.1) {
+                camera.shake *= camera.shakeDecay;
+            } else {
+                camera.shake = 0;
+            }
+
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+
+            let dx = 0;
+            let dy = 0;
+
+            if (keys['w'] || keys['arrowup']) dy -= 1;
+            if (keys['s'] || keys['arrowdown']) dy += 1;
+            if (keys['a'] || keys['arrowleft']) dx -= 1;
+            if (keys['d'] || keys['arrowright']) dx += 1;
+
+            if (isTouchingJoystick) {
+                dx = joystickVector.x;
+                dy = joystickVector.y;
+            }
+
+            if (!isTouchingJoystick && (dx !== 0 || dy !== 0)) {
+                const len = Math.max(0.1, Math.sqrt(dx * dx + dy * dy));
+                dx /= len;
+                dy /= len;
+            }
+
+            player.x += dx * player.speed;
+            player.y += dy * player.speed;
+
+            camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
+            camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+
+            processActiveSkills();
+            checkMeditationAura(getPassiveMod('reading'));
+
+            meditationTickCounter++;
+            if (meditationTickCounter >= 30) { 
+                checkMeditationAuraDamage(getPassiveMod('reading'));
+                meditationTickCounter = 0;
+            }
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+
+                if (p.type === 'book') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.rotation += 0.08;
+
+                    if (Math.max(0.1, Math.sqrt((p.x - player.x)**2 + (p.y - player.y)**2)) > 1000) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        if (p.hitList.has(e)) continue;
+
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist < p.radius + e.size / 2) {
+                            applyDamageToEnemy(e, p.damage, 'study');
+                            e.flash = 5;
+                            p.hitList.add(e);
+                            p.textX = e.x;
+                            p.textY = e.y;
+                            p.pierceCount--;
+
+                            const kdx = e.x - player.x;
+                            const kdy = e.y - player.y;
+                            const klen = Math.max(0.1, Math.sqrt(kdx*kdx + kdy*kdy));
+                            if (klen > 0) {
+                                e.knockbackX += (kdx / klen) * 3;
+                                e.knockbackY += (kdy / klen) * 3;
+                            }
+
+                            createExplosion(p.x, p.y, p.color, 4);
+
+                            if (p.textX && p.textY && Math.random() < 0.3) {
+                                createFloatingText(p.textX, p.textY - 12, p.damage.toFixed(0), '#22d3ee');
+                            }
+
+                            if (p.textX && p.textY && Math.random() < 0.3) {
+                                createFloatingText(p.textX, p.textY - 12, p.damage.toFixed(0), '#22d3ee');
+                            }
+
+                            if (p.pierceCount <= 0) {
+                                projectiles.splice(i, 1);
+                                break;
+                            }
+                        }
+                    }
+                } 
+                else if (p.type === 'stretching') {
+                    p.currentRadius += p.expandSpeed;
+                    p.x = player.x;
+                    p.y = player.y;
+
+                    enemies.forEach(e => {
+                        if (p.hitList.has(e)) return;
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist <= p.currentRadius + e.size/2) {
+                            applyDamageToEnemy(e, p.damage, 'stretching');
+                            e.flash = 6;
+                            p.hitList.add(e);
+
+                            const kdx = e.x - player.x;
+                            const kdy = e.y - player.y;
+                            const klen = Math.max(0.1, Math.sqrt(kdx*kdx + kdy*kdy));
+                            if (klen > 0) {
+                                e.knockbackX += (kdx / klen) * (7 + skills.stretching * 1.5);
+                                e.knockbackY += (kdy / klen) * (7 + skills.stretching * 1.5);
+                            }
+
+                            createExplosion(e.x, e.y, '#a855f7', 4);
+                            createFloatingText(e.x, e.y - 12, p.damage.toFixed(0), '#a855f7');
+                        }
+                    });
+
+                    if (p.currentRadius >= p.maxRadius) {
+                        projectiles.splice(i, 1);
+                    }
+                }
+                else if (p.type === 'note_throw') {
+                    p.progress += p.speed;
+                    p.x = p.startX + (p.targetX - p.startX) * p.progress;
+                    p.y = p.startY + (p.targetY - p.startY) * p.progress;
+
+                    if (p.progress >= 1.0) {
+                        inkPools.push({
+                            x: p.targetX,
+                            y: p.targetY,
+                            radius: p.poolRadius,
+                            damage: p.damage,
+                            duration: p.poolDuration,
+                            color: '#ffffff' 
+                        });
+                        projectiles.splice(i, 1);
+                    }
+                }
+                else if (p.type === 'shield_item') {
+                    p.angle += p.speed;
+                    p.activeTimer--;
+
+                    if (p.activeTimer <= 0) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    let scale = 1.0;
+                    const spawnInDuration = 40;
+                    const elapsed = p.maxTimer - p.activeTimer;
+                    if (elapsed < spawnInDuration) {
+                        scale = elapsed / spawnInDuration; 
+                    }
+
+                    const currentRadius = p.radius * scale;
+                    p.x = player.x + Math.cos(p.angle) * currentRadius;
+                    p.y = player.y + Math.sin(p.angle) * currentRadius;
+
+                    enemies.forEach(e => {
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist < (18 * scale) + e.size/2) { 
+                            applyDamageToEnemy(e, p.damage, 'block');
+                            e.flash = 4;
+                            createExplosion(p.x, p.y, '#f59e0b', 2);
+                            
+                            const kdx = e.x - player.x;
+                            const kdy = e.y - player.y;
+                            const klen = Math.max(0.1, Math.sqrt(kdx*kdx + kdy*kdy));
+                            if (klen > 0) {
+                                e.knockbackX += (kdx / klen) * 3.5;
+                                e.knockbackY += (kdy / klen) * 3.5;
+                            }
+                            if (Math.random() < 0.25) {
+                                createFloatingText(e.x, e.y - 12, p.damage.toFixed(0), '#f59e0b');
+                            }
+                        }
+                    });
+                }
+                else if (p.type === 'boomerang') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.distancePassed += Math.sqrt(p.vx**2 + p.vy**2);
+                    p.rotation += 0.18; 
+
+                    if (p.distancePassed > 380) {
+                        p.returning = true;
+                    }
+
+                    if (p.returning) {
+                        const dx = player.x - p.x;
+                        const dy = player.y - p.y;
+                        const dist = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+                        if (dist < 15) {
+                            projectiles.splice(i, 1);
+                            continue;
+                        }
+                        p.vx = (dx / dist) * 4.2;
+                        p.vy = (dy / dist) * 4.2;
+                    }
+
+                    enemies.forEach(e => {
+                        if (p.hitList.has(e)) return;
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist < p.size/2 + e.size/2) {
+                            applyDamageToEnemy(e, p.damage, 'error');
+                            e.flash = 5;
+                            p.hitList.add(e);
+
+                            const kdx = e.x - player.x;
+                            const kdy = e.y - player.y;
+                            const klen = Math.max(0.1, Math.sqrt(kdx*kdx + kdy*kdy));
+                            if (klen > 0) {
+                                e.knockbackX += (kdx / klen) * 4;
+                                e.knockbackY += (kdy / klen) * 4;
+                            }
+
+                            createExplosion(p.x, p.y, p.color, 3);
+                            createFloatingText(e.x, e.y - 12, p.damage.toFixed(0), '#10b981');
+                        }
+                    });
+                }
+                else if (p.type === 'broom') {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.duration--;
+
+                    p.rotation = Math.atan2(p.vy, p.vx) - Math.PI * 0.75;
+
+                    if (p.duration <= 0) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    const camLeft = camera.x;
+                    const camRight = camera.x + canvas.width;
+                    const camTop = camera.y;
+                    const camBottom = camera.y + canvas.height;
+
+                    let bounced = false;
+                    if (p.x < camLeft + 15 || p.x > camRight - 15) {
+                        p.vx *= -1;
+                        bounced = true;
+                    }
+                    if (p.y < camTop + 15 || p.y > camBottom - 15) {
+                        p.vy *= -1;
+                        bounced = true;
+                    }
+
+                    if (bounced) {
+                        p.bounces++;
+                        if (p.bounces > p.maxBounces) {
+                            projectiles.splice(i, 1);
+                            continue;
+                        }
+                    }
+
+                    enemies.forEach(e => {
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist < p.size/2 + e.size/2) {
+                            applyDamageToEnemy(e, p.damage, 'clean');
+                            e.flash = 4;
+
+                            const kdx = e.x - player.x;
+                            const kdy = e.y - player.y;
+                            const klen = Math.max(0.1, Math.sqrt(kdx*kdx + kdy*kdy));
+                            if (klen > 0) {
+                                e.knockbackX += (kdx / klen) * 2.5;
+                                e.knockbackY += (kdy / klen) * 2.5;
+                            }
+
+                            if (Math.random() < 0.2) createExplosion(p.x, p.y, '#eab308', 2);
+                            if (Math.random() < 0.25) {
+                                createFloatingText(e.x, e.y - 12, p.damage.toFixed(0), '#eab308');
+                            }
+                        }
+                    });
+                }
+                else if (p.type === 'sunbeam') {
+                    p.duration--;
+                    
+                    enemies.forEach(e => {
+                        if (p.hitList.has(e)) return;
+                        const dist = Math.max(0.1, Math.sqrt((p.x - e.x)**2 + (p.y - e.y)**2));
+                        if (dist <= 35 + e.size / 2) {
+                            applyDamageToEnemy(e, p.damage, 'sun');
+                            e.flash = 5;
+                            p.hitList.add(e);
+                            createExplosion(e.x, e.y, '#fbbf24', 4);
+                            createFloatingText(e.x, e.y - 12, p.damage.toFixed(0), '#fbbf24');
+                        }
+                    });
+
+                    if (p.duration <= 0) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+                }
+                else if (p.type === 'shower_stream') {
+                    p.duration--;
+                    p.x += p.sweepDir * p.sweepSpeed;
+
+                    enemies.forEach(e => {
+                        const dx = Math.abs(e.x - p.x);
+                        const dy = e.y - p.y;
+
+                        if (dx < (p.width / 2 + e.size / 2) && dy < 50 && dy > -450) {
+                            const tickKey = Math.floor(p.duration / 6);
+                            const hitKey = `e_${e.id}_${tickKey}`;
+                            
+                            if (!p.hitList.has(hitKey)) {
+                                const realDmg = p.damage / 3.5;
+                                applyDamageToEnemy(e, realDmg, 'shower');
+                                e.flash = 4;
+                                p.hitList.add(hitKey);
+                                if (Math.random() < 0.25) {
+                                    createExplosion(e.x, e.y, '#3b82f6', 2);
+                                }
+                                if (Math.random() < 0.3) {
+                                    createFloatingText(e.x, e.y - 12, realDmg.toFixed(0), '#60a5fa');
+                                }
+                            }
+                        }
+                    });
+
+                    if (p.duration <= 0) {
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+                }
+            }
+
+            for (let i = inkPools.length - 1; i >= 0; i--) {
+                const pool = inkPools[i];
+                pool.duration--;
+
+                if (pool.duration <= 0) {
+                    inkPools.splice(i, 1);
+                    continue;
+                }
+
+                enemies.forEach(e => {
+                    const dist = Math.max(0.1, Math.sqrt((pool.x - e.x)**2 + (pool.y - e.y)**2));
+                    if (dist < pool.radius + e.size / 2) {
+                        if (pool.duration % 14 === 0) { 
+                            applyDamageToEnemy(e, pool.damage, 'note');
+                            e.flash = 3;
+                            createExplosion(e.x, e.y, '#22c55e', 2);
+                            createFloatingText(e.x, e.y - 12, pool.damage.toFixed(0), '#4ade80');
+                        }
+                    }
+                });
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const f = floatingTexts[i];
+                f.y += f.vy;
+                f.alpha -= f.decay;
+                if (f.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                }
+            }
+
+            // Wave Spawning Tick
+            spawnTimer++;
+            const wave = getWaveConfig();
+            const elapsed = gameTimeMax - gameTime;
+            const secondsOfMinute = Math.floor(elapsed) % 60;
+            const isHordeActive = secondsOfMinute >= 40 && secondsOfMinute <= 50;
+            const currentInterval = isHordeActive ? Math.ceil(wave.spawnInterval / 3) : wave.spawnInterval;
+
+            if (spawnTimer >= currentInterval) {
+                spawnEnemy();
+                if (isHordeActive && Math.random() < 0.6) {
+                    spawnEnemy();
+                }
+                spawnTimer = 0;
+            }
+
+            const alertElement = document.getElementById('bossAlert');
+            if (isHordeActive) {
+                alertElement.innerText = "⚠️ 알림 폭주! 알고리즘의 유혹이 쏟아집니다! ⚠️";
+                alertElement.classList.remove('hidden');
+            } else {
+                if (alertElement.innerText.includes("알림 폭주")) {
+                    alertElement.classList.add('hidden');
+                }
+            }
+
+            // Milestone boss spawners (Ensures correct boss execution)
+            const currentSec = Math.floor(elapsed);
+            if (currentSec >= 240 && !bossesSpawned.dopamine_maker) {
+                bossesSpawned.dopamine_maker = true;
+                spawnEnemy(true, 'dopamine_maker');
+            }
+            if (currentSec >= 420 && !bossesSpawned.algo_master) {
+                bossesSpawned.algo_master = true;
+                spawnEnemy(true, 'algo_master');
+            }
+            if (currentSec >= 540 && !bossesSpawned.dopamine_lord) {
+                bossesSpawned.dopamine_lord = true;
+                spawnEnemy(true, 'dopamine_lord');
+            }
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (e.flash > 0) e.flash--;
+
+                e.x += e.knockbackX;
+                e.y += e.knockbackY;
+                e.knockbackX *= 0.85;
+                e.knockbackY *= 0.85;
+
+                if (e.hp <= 0) {
+                    playEnemyDefeatSound(e.isBoss);
+                    createExplosion(e.x, e.y, e.color, e.isBoss ? 20 : 8);
+                    player.damageCount++;
+                    spawnGem(e.x, e.y);
+
+                    // Drop Recovery Item "Sleep (수면 침대)" - 오직 보스 처치 시에만 확정 드롭
+                    if (e.isBoss) {
+                        spawnRecoveryItem(e.x, e.y);
+                    }
+
+                    enemies.splice(i, 1);
+                    continue;
+                }
+
+                const dx = player.x - e.x;
+                const dy = player.y - e.y;
+                const dist = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+
+                if (dist > 0) {
+                    if (e.isBoss) {
+                        e.patternTimer++;
+                        if (e.patternTimer > 180) {
+                            e.x += (dx / dist) * e.speed * 4;
+                            e.y += (dy / dist) * e.speed * 4;
+                            if (e.patternTimer > 210) e.patternTimer = 0;
+                        } else {
+                            e.x += (dx / dist) * e.speed;
+                            e.y += (dy / dist) * e.speed;
+                        }
+                    } else {
+                        e.x += (dx / dist) * e.speed;
+                        e.y += (dy / dist) * e.speed;
+                    }
+                }
+
+                if (dist <= player.radius + e.size / 2 && !player.invincible) {
+                    player.hp -= e.damage;
+                    player.invincible = true;
+                    player.invincibleTimer = player.invincibleDuration;
+                    camera.shake = 8; 
+
+                    playPlayerHitSound();
+                    createFloatingText(player.x, player.y - 12, "-" + e.damage, "#f43f5e", true);
+                    createExplosion(player.x, player.y, '#ef4444', 6);
+
+                    updateHUD();
+
+                    if (player.hp <= 0) {
+                        endGame(false);
+                        return;
+                    }
+                }
+            }
+
+            for (let i = experienceGems.length - 1; i >= 0; i--) {
+                const gem = experienceGems[i];
+                const dx = player.x - gem.x;
+                const dy = player.y - gem.y;
+                const dist = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+
+                if (dist < 130 || gem.target) {
+                    gem.target = player;
+                    gem.speed = Math.min(9, gem.speed + 0.35);
+                    gem.x += (dx / dist) * gem.speed;
+                    gem.y += (dy / dist) * gem.speed;
+                }
+
+                if (dist <= player.radius + gem.size) {
+                    createExplosion(gem.x, gem.y, '#22d3ee', 3);
+                    addXp(gem.xpValue);
+                    experienceGems.splice(i, 1);
+                }
+            }
+
+            // Magnetizing and picking up Sleep items (Heal 75)
+            for (let i = recoveryItems.length - 1; i >= 0; i--) {
+                const item = recoveryItems[i];
+                const dx = player.x - item.x;
+                const dy = player.y - item.y;
+                const dist = Math.max(0.1, Math.sqrt(dx*dx + dy*dy));
+
+                if (dist < 180 || item.target) { 
+                    item.target = player;
+                    item.speed = Math.min(9, item.speed + 0.35);
+                    item.x += (dx / dist) * item.speed;
+                    item.y += (dy / dist) * item.speed;
+                }
+
+                if (dist <= player.radius + item.size) {
+                    player.hp = Math.min(player.maxHp, player.hp + item.healAmount);
+                    playSelectSound();
+                    createFloatingText(player.x, player.y - 15, `+${item.healAmount} 푹 수면! 🛌`, '#10b981', true);
+                    createExplosion(item.x, item.y, '#10b981', 12);
+                    updateHUD();
+                    recoveryItems.splice(i, 1);
+                }
+            }
+        }
+
+        function drawCanvas() {
+            try {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.globalAlpha = 1.0;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                let shakeX = 0;
+                let shakeY = 0;
+                if (camera.shake > 0.1) {
+                    shakeX = (Math.random() - 0.5) * camera.shake;
+                    shakeY = (Math.random() - 0.5) * camera.shake;
+                }
+
+                ctx.save();
+                ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
+
+                const grid = 120;
+                const startGridX = Math.floor(camera.x / grid) * grid - grid;
+                const startGridY = Math.floor(camera.y / grid) * grid - grid;
+                const endGridX = startGridX + canvas.width + grid * 2;
+                const endGridY = startGridY + canvas.height + grid * 2;
+
+                ctx.strokeStyle = '#0e172a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = startGridX; x <= endGridX; x += grid) {
+                    ctx.moveTo(x, startGridY);
+                    ctx.lineTo(x, endGridY);
+                }
+                for (let y = startGridY; y <= endGridY; y += grid) {
+                    ctx.moveTo(startGridX, y);
+                    ctx.lineTo(endGridX, y);
+                }
+                ctx.stroke();
+
+                inkPools.forEach(pool => {
+                    ctx.save();
+                    ctx.translate(pool.x, pool.y);
+
+                    const w = pool.radius * 1.5;
+                    const h = pool.radius * 1.1;
+
+                    ctx.shadowColor = 'rgba(34, 197, 94, 0.15)';
+                    ctx.shadowBlur = 10;
+
+                    ctx.fillStyle = '#f8fafc'; 
+                    ctx.beginPath();
+                    ctx.roundRect(-w / 2, -h / 2, w, h, 6);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0; 
+                    ctx.strokeStyle = '#e2e8f0';
+                    ctx.lineWidth = 0.8;
+                    for (let dy = -h / 2 + 10; dy < h / 2 - 5; dy += 12) {
+                        ctx.beginPath();
+                        ctx.moveTo(-w / 2 + 8, dy);
+                        ctx.lineTo(w / 2 - 8, dy);
+                        ctx.stroke();
+                    }
+
+                    ctx.strokeStyle = '#2563eb'; 
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-w/3, -h/4);
+                    ctx.bezierCurveTo(-w/6, -h/3, w/6, -h/4, w/3, -h/5);
+                    ctx.bezierCurveTo(-w/4, -h/10, -w/6, h/8, w/4, 0);
+                    ctx.bezierCurveTo(-w/3, h/6, w/10, h/3, w/3, h/4);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#64748b';
+                    for (let sy = -h / 2 + 6; sy < h / 2 - 4; sy += 10) {
+                        ctx.beginPath();
+                        ctx.arc(-w / 2 + 4, sy, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                });
+
+                experienceGems.forEach(gem => {
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillStyle = '#22d3ee';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#22d3ee';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(gem.x, gem.y - gem.size);
+                    ctx.lineTo(gem.x + gem.size, gem.y);
+                    ctx.lineTo(gem.x, gem.y + gem.size);
+                    ctx.lineTo(gem.x - gem.size, gem.y);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+                ctx.shadowBlur = 0;
+
+                // Draw Sleep recovery drops with neon glow
+                recoveryItems.forEach(item => {
+                    ctx.save();
+                    ctx.globalAlpha = 1.0;
+                    ctx.translate(item.x, item.y);
+                    
+                    ctx.shadowBlur = 20; 
+                    ctx.shadowColor = '#10b981';
+                    
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.35)'; 
+                    ctx.beginPath();
+                    ctx.arc(0, 0, item.size * 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 24px sans-serif'; 
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🛏️', 0, 0); 
+                    
+                    ctx.restore();
+                });
+
+                projectiles.forEach(p => {
+                    ctx.globalAlpha = 1.0; 
+                    if (p.type === 'book') {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rotation);
+                        ctx.font = `${p.radius * 2.5}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('📖', 0, 0);
+                        ctx.restore();
+                    } 
+                    else if (p.type === 'stretching') {
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.currentRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(168, 85, 247, 0.7)';
+                        ctx.lineWidth = 2.0;
+                        ctx.stroke();
+                    }
+                    else if (p.type === 'note_throw') {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.font = '20px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('📝', 0, 0);
+                        ctx.restore();
+                    }
+                    else if (p.type === 'shield_item') {
+                        ctx.save();
+                        
+                        let fadeAlpha = 1.0;
+                        if (p.activeTimer < 50) {
+                            fadeAlpha = p.activeTimer / 50;
+                        }
+                        ctx.globalAlpha = fadeAlpha;
+                        
+                        ctx.translate(p.x, p.y);
+                        ctx.font = '32px sans-serif'; 
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('🔕', 0, 0);
+                        ctx.restore();
+                        ctx.globalAlpha = 1.0; 
+                    }
+                    else if (p.type === 'boomerang') {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rotation);
+                        ctx.font = `${p.size * 1.5}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('📔', 0, 0);
+                        
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.moveTo(-p.size/3, -p.size/3);
+                        ctx.lineTo(p.size/3, p.size/3);
+                        ctx.moveTo(p.size/3, -p.size/3);
+                        ctx.lineTo(-p.size/3, p.size/3);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                    else if (p.type === 'broom') {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rotation);
+                        ctx.font = `${p.size * 1.4}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('🧹', 0, 0);
+                        ctx.restore();
+                    }
+                    else if (p.type === 'sunbeam') {
+                        const opacity = p.duration / p.maxDuration;
+                        ctx.save();
+                        ctx.globalAlpha = opacity;
+                        
+                        const camTop = camera.y - 120;
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.lineWidth = 14 * opacity;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, camTop);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 4 * opacity;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, camTop);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(251, 191, 36, 0.45)';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 45 * opacity, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                    else if (p.type === 'shower_stream') {
+                        const opacity = p.duration / p.maxDuration;
+                        ctx.save();
+                        ctx.globalAlpha = opacity;
+
+                        const camTop = camera.y - 150;
+                        
+                        ctx.strokeStyle = 'rgba(59, 130, 246, 0.45)';
+                        ctx.lineWidth = p.width * 2.2;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, camTop);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#3b82f6';
+                        ctx.lineWidth = p.width * 1.3;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, camTop);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#e0f2fe';
+                        ctx.lineWidth = p.width * 0.45;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, camTop);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#60a5fa';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.width * 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                });
+
+                // Meditation aura
+                if (skills.meditation > 0) {
+                    ctx.globalAlpha = 1.0;
+                    const radius = 110 + (skills.meditation * 15);
+                    ctx.strokeStyle = 'rgba(244, 114, 182, 0.35)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, radius, 0, Math.PI*2);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(244, 114, 182, 0.04)';
+                    ctx.fill();
+                }
+
+                enemies.forEach(e => {
+                    ctx.save();
+                    ctx.globalAlpha = 1.0; 
+                    ctx.translate(e.x, e.y);
+
+                    // 명상 감속 디버프 CC 연출
+                    if (e.inMeditation) {
+                        ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+                        ctx.lineWidth = 2;
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = '#38bdf8';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, e.size * 0.85, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    }
+
+                    if (e.flash > 0) {
+                        ctx.fillStyle = 'rgba(239, 68, 68, 0.55)'; 
+                        ctx.beginPath();
+                        ctx.arc(0, 0, e.size * 0.8, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+
+                    if (e.inMeditation) {
+                        ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, e.size * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `${e.size * 1.2}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(e.emoji, 0, 0);
+
+                    if (e.isBoss) {
+                        ctx.fillStyle = '#f43f5e';
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(e.name, 0, -e.size/2 - 10);
+                    }
+
+                    if (e.hp < e.maxHp) {
+                        const barW = e.size;
+                        const barH = 3;
+                        ctx.fillStyle = '#1e293b';
+                        ctx.fillRect(-barW/2, -e.size/2 - 6, barW, barH);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(-barW/2, -e.size/2 - 6, (e.hp / e.maxHp) * barW, barH);
+                    }
+
+                    ctx.restore();
+                });
+
+                particles.forEach(p => {
+                    ctx.save();
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                floatingTexts.forEach(f => {
+                    ctx.save();
+                    ctx.fillStyle = f.color;
+                    ctx.globalAlpha = f.alpha;
+                    ctx.font = `${f.fontWeight} ${f.fontSize}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(f.text, f.x, f.y);
+                    ctx.restore();
+                });
+
+                ctx.save();
+                ctx.globalAlpha = 1.0;
+                ctx.translate(player.x, player.y);
+
+                const pulse = 8 + Math.sin(Date.now() / 140) * 2;
+                ctx.shadowBlur = pulse;
+                ctx.shadowColor = '#06b6d4';
+
+                if (player.invincible && Math.floor(Date.now() / 60) % 2 === 0) {
+                    ctx.fillStyle = '#e0f2fe'; 
+                } else {
+                    ctx.fillStyle = '#06b6d4';
+                }
+
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#090d16';
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius - 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#22d3ee';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🧠', 0, 0);
+
+                ctx.restore();
+
+                ctx.restore(); 
+                ctx.globalAlpha = 1.0; 
+            } catch (err) {
+                console.error("Rendering safety fallback: ", err);
+                try { ctx.restore(); } catch(_) {}
+            }
+        }
+
+        // Game Loop with sub-frame speed accumulation
+        function gameLoop() {
+            if (gameState === 'PLAYING' && !isGamePaused) {
+                physicsAccumulator += gameSpeedMultiplier;
+                while (physicsAccumulator >= 1) {
+                    updatePhysics();
+                    physicsAccumulator -= 1;
+                }
+            }
+            drawCanvas();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startTimer() {
+            if (gameTimerInterval) clearInterval(gameTimerInterval);
+            
+            // Scaled dynamic interval based on speed multiplier
+            const baseInterval = 1000;
+            const dynamicInterval = baseInterval / gameSpeedMultiplier;
+
+            gameTimerInterval = setInterval(() => {
+                if (gameState === 'PLAYING' && !isGamePaused) {
+                    gameTime -= 1; // Always deduct exactly 1 integer unit smoothly
+                    if (gameTime < 0) gameTime = 0;
+
+                    const displayTime = Math.max(0, Math.floor(gameTime));
+                    const min = Math.floor(displayTime / 60);
+                    const sec = displayTime % 60;
+                    document.getElementById('timerText').innerText = 
+                        `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+                    if (displayTime <= 0) {
+                        endGame(true);
+                    }
+                }
+            }, dynamicInterval);
+        }
+
+        function endGame(victory) {
+            gameState = 'RESULT';
+            if (gameTimerInterval) clearInterval(gameTimerInterval);
+
+            const resultModal = document.getElementById('campaignResultModal');
+            const resultIcon = document.getElementById('resultIconContainer');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultSubtitle = document.getElementById('resultSubtitle');
+
+            const elapsed = gameTimeMax - gameTime;
+            const displayElapsed = Math.max(0, Math.floor(elapsed));
+            const min = Math.floor(displayElapsed / 60).toString().padStart(2, '0');
+            const sec = (displayElapsed % 60).toString().padStart(2, '0');
+
+            document.getElementById('reportTime').innerText = `${min}:${sec}`;
+            document.getElementById('reportLevel').innerText = `Lv.${player.level}`;
+            document.getElementById('reportEnemies').innerText = `${player.damageCount}개`;
+
+            // Calculate skill with the highest damage contribution
+            let topSkillName = "공부 (책 던지기)";
+            let maxDmg = -1;
+            let topSkillKey = "";
+            for (const key in damageDealt) {
+                if (damageDealt[key] > maxDmg && (skills[key] > 0 || damageDealt[key] > 0)) {
+                    maxDmg = damageDealt[key];
+                    topSkillKey = key;
+                }
+            }
+
+            let totalDmg = 0;
+            for (const key in damageDealt) {
+                totalDmg += damageDealt[key];
+            }
+
+            if (topSkillKey && campaignData.active[topSkillKey] && maxDmg > 0) {
+                const pct = totalDmg > 0 ? ((maxDmg / totalDmg) * 100).toFixed(1) : '0.0';
+                topSkillName = `${campaignData.active[topSkillKey].name.split(' (')[0]} (${pct}%)`;
+            } else {
+                topSkillName = "없음";
+            }
+            document.getElementById('reportTopSkill').innerText = topSkillName;
+
+            // Render Final Live Damage Report
+            renderDamageStats('resultDamageStatsContainer');
+
+            const timeBox = document.getElementById('reportTimeBox');
+            const topSkillBox = document.getElementById('reportTopSkillBox');
+
+            if (victory) {
+                // Hide redundant Time box on full 10:00 clear, make top active habit span full-width
+                timeBox.classList.add('hidden');
+                topSkillBox.className = "col-span-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800/50";
+
+                resultIcon.className = "w-20 h-20 bg-gradient-to-tr from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-slate-950 text-4xl mb-4 shadow-xl shadow-emerald-500/20";
+                resultIcon.innerHTML = `<i class="fa-solid fa-crown text-amber-100 animate-bounce"></i>`;
+                resultTitle.innerText = "🏆 성공! 집중력 완벽 수호";
+                resultTitle.className = "text-2xl md:text-3xl font-black text-emerald-400 tracking-tight mb-1";
+                resultSubtitle.innerText = "당신은 10분간의 무차별적인 숏폼 알고리즘 유혹을 완벽히 물리치고 뇌 건강을 구했습니다!";
+                
+                playVictoryFanfare();
+            } else {
+                // Show Time box on Game Over, restore grid sizes
+                timeBox.classList.remove('hidden');
+                topSkillBox.className = "bg-slate-900/60 p-3 rounded-xl border border-slate-800/50";
+
+                resultIcon.className = "w-20 h-20 bg-gradient-to-tr from-red-500 to-rose-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-4 shadow-xl shadow-red-500/20";
+                resultIcon.innerHTML = `<i class="fa-solid fa-face-frown"></i>`;
+                resultTitle.innerText = "📱 집중력 한계 초과";
+                resultTitle.className = "text-2xl md:text-3xl font-black text-rose-400 tracking-tight mb-1";
+                resultSubtitle.innerText = "스마트폰 숏폼 자극에 장시간 무방비 노출되어 팝콘 브레인 상태가 되었습니다.";
+                
+                playGameOverSound();
+            }
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            document.getElementById('campaignResultModal').classList.add('hidden');
+            document.getElementById('pauseModal').classList.add('hidden');
+            
+            clearKeys(); 
+            player.x = 0;
+            player.y = 0;
+            player.hp = 100;
+            player.maxHp = 100;
+            player.level = 1;
+            player.xp = 0;
+            player.xpNeeded = 10;
+            player.speed = player.baseSpeed;
+            player.invincible = false;
+            player.damageCount = 0;
+
+            // Reset Rerolls
+            rerollsLeft = 1;
+            isGamePaused = false;
+
+            // Reset Damage Registries
+            for (const key in damageDealt) {
+                damageDealt[key] = 0;
+            }
+
+            // Reset Milestone Boss Tracker flags
+            bossesSpawned.dopamine_maker = false;
+            bossesSpawned.algo_master = false;
+            bossesSpawned.dopamine_lord = false;
+
+            for (const key in skills) {
+                skills[key] = 0;
+            }
+            skills.study = 1;
+
+            enemies = [];
+            projectiles = [];
+            particles = [];
+            experienceGems = [];
+            recoveryItems = []; 
+            inkPools = [];
+            floatingTexts = [];
+            meditationTickCounter = 0;
+
+            gameTime = gameTimeMax;
+            spawnTimer = 0;
+            physicsAccumulator = 0;
+
+            gameState = 'PLAYING';
+            updateHUD();
+
+            triggerLevelUp();
+            startTimer();
+        }
+
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            initAudio();
+            playSelectSound();
+            document.getElementById('startScreen').classList.add('hidden');
+            restartGame();
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
